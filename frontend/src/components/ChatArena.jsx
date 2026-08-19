@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, Sparkles, Copy, Check } from 'lucide-react';
+import { Send, Bot, User, Loader2, Copy, Check } from 'lucide-react';
 import VoiceInput from './VoiceInput';
 
 export default function ChatArena({ 
@@ -38,7 +38,7 @@ export default function ChatArena({
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#0d1117] overflow-hidden relative">
+    <div className="flex-1 flex flex-col h-full bg-[#09090b] overflow-hidden relative font-sans">
       
       {/* Messages Scroll Panel */}
       <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
@@ -49,30 +49,30 @@ export default function ChatArena({
               msg.role === 'candidate' ? 'ml-auto flex-row-reverse' : 'mr-auto'
             }`}
           >
-            {/* Avatar Icon */}
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${
+            {/* Avatar */}
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${
               msg.role === 'candidate' 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-[#161b22] border border-[#30363d] text-blue-400'
+                ? 'bg-zinc-100 text-zinc-900 border-white' 
+                : 'bg-zinc-900 text-zinc-300 border-zinc-800'
             }`}>
               {msg.role === 'candidate' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
             </div>
 
             {/* Message Bubble Card */}
-            <div className={`rounded-2xl p-4 text-sm leading-relaxed border relative group shadow-sm ${
+            <div className={`rounded-xl p-4 text-sm leading-relaxed border relative group shadow-sm ${
               msg.role === 'candidate'
-                ? 'bg-[#1d2d44] text-blue-100 border-blue-500/30 rounded-tr-none'
-                : 'bg-[#161b22] text-slate-100 border-[#30363d] rounded-tl-none'
+                ? 'bg-zinc-900 text-zinc-100 border-zinc-800 rounded-tr-none'
+                : 'bg-zinc-900/90 text-zinc-200 border-zinc-800/80 rounded-tl-none'
             }`}>
-              <div className="flex items-center justify-between gap-4 mb-2 pb-1.5 border-b border-slate-800/80">
-                <div className="font-bold text-xs text-slate-400 flex items-center gap-1.5 font-mono">
+              <div className="flex items-center justify-between gap-4 mb-2 pb-1.5 border-b border-zinc-800/80">
+                <div className="font-bold text-xs text-zinc-400 flex items-center gap-1.5 font-mono">
                   <span>{msg.role === 'candidate' ? 'Candidate Response' : 'Interviewer'}</span>
-                  {msg.question && <span className="text-blue-400 font-bold">[Question {msg.question}]</span>}
+                  {msg.question && <span className="text-zinc-300 font-bold">[Question {msg.question}]</span>}
                 </div>
                 
                 <button
                   onClick={() => copyToClipboard(msg.content, idx)}
-                  className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-slate-200 transition-opacity p-1 rounded-md hover:bg-slate-800 cursor-pointer"
+                  className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-zinc-200 transition-opacity p-1 rounded-md hover:bg-zinc-800 cursor-pointer"
                   title="Copy text"
                 >
                   {copiedIdx === idx ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -86,20 +86,19 @@ export default function ChatArena({
           </div>
         ))}
 
-        {/* Live Streaming Token Buffer Bubble */}
+        {/* Streaming Buffer */}
         {isStreaming && (
           <div className="flex gap-3 max-w-3xl mr-auto">
-            <div className="w-8 h-8 rounded-xl bg-[#161b22] border border-[#30363d] text-blue-400 flex items-center justify-center shrink-0 animate-pulse shadow-sm">
-              <Bot className="w-4 h-4 text-blue-400" />
+            <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 flex items-center justify-center shrink-0 animate-pulse">
+              <Bot className="w-4 h-4" />
             </div>
-            <div className="rounded-2xl p-4 text-sm leading-relaxed bg-[#161b22] text-slate-100 border border-[#30363d] rounded-tl-none shadow-sm min-w-[240px]">
-              <div className="font-semibold text-xs text-blue-400 mb-2 flex items-center gap-1.5 font-mono">
-                <Sparkles className="w-3.5 h-3.5 animate-spin text-blue-400" />
-                <span>Interviewer is analyzing repository & writing question...</span>
+            <div className="rounded-xl p-4 text-sm leading-relaxed bg-zinc-900/90 text-zinc-200 border border-zinc-800/80 rounded-tl-none shadow-sm min-w-[240px]">
+              <div className="font-semibold text-xs text-zinc-400 mb-2 font-mono">
+                Interviewer is analyzing code & streaming response...
               </div>
               <div className="whitespace-pre-wrap font-sans leading-relaxed">
                 {streamingText}
-                <span className="inline-block w-2 h-4 bg-blue-400 ml-1 animate-pulse" />
+                <span className="inline-block w-2 h-4 bg-zinc-400 ml-1 animate-pulse" />
               </div>
             </div>
           </div>
@@ -109,7 +108,7 @@ export default function ChatArena({
       </div>
 
       {/* Input Bar */}
-      <div className="p-4 bg-[#161b22] border-t border-[#30363d]">
+      <div className="p-4 bg-zinc-900/90 border-t border-zinc-800/80">
         <form onSubmit={handleSubmit} className="flex items-center gap-2 max-w-4xl mx-auto">
           <input
             type="text"
@@ -117,7 +116,7 @@ export default function ChatArena({
             onChange={(e) => setInputAnswer(e.target.value)}
             disabled={isStreaming}
             placeholder={isStreaming ? 'Interviewer is speaking...' : 'Type your technical response or use speech recognition...'}
-            className="flex-1 bg-[#0d1117] text-slate-100 placeholder-slate-500 text-sm px-4 py-3 rounded-xl border border-[#30363d] focus:outline-none focus:border-blue-500 disabled:opacity-50 transition-all font-mono"
+            className="flex-1 bg-zinc-950 text-zinc-100 placeholder-zinc-500 text-xs px-4 py-3 rounded-xl border border-zinc-800 focus:outline-none focus:border-zinc-700 disabled:opacity-50 transition-all font-mono"
           />
 
           <VoiceInput onTranscript={handleVoiceTranscript} disabled={isStreaming} />
@@ -125,9 +124,9 @@ export default function ChatArena({
           <button
             type="submit"
             disabled={!inputAnswer.trim() || isStreaming}
-            className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-3 rounded-xl font-extrabold text-sm flex items-center gap-2 shadow-md transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+            className="bg-zinc-100 hover:bg-white text-zinc-900 px-5 py-3 rounded-xl font-bold text-xs flex items-center gap-2 shadow-sm transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
           >
-            {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            {isStreaming ? <Loader2 className="w-4 h-4 animate-spin text-zinc-900" /> : <Send className="w-4 h-4 text-zinc-900" />}
             <span className="hidden sm:inline">Submit</span>
           </button>
         </form>
