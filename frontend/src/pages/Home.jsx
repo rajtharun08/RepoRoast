@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Flame, GitBranch, Shield, Zap, UserCheck, ArrowRight, Sparkles } from 'lucide-react';
-import { PERSONA_PRESETS } from '../../../backend/app/services/persona_service'; // fallback preset list
 
 const PRESET_LIST = [
   { key: 'FAANG Gatekeeper', desc: 'Strict, analytical, focuses on complexity & scalability.', icon: Shield },
