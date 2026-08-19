@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
 import Header from '../components/Header';
 import ChatArena from '../components/ChatArena';
 import CodeContextModal from '../components/CodeContextModal';
@@ -7,7 +6,6 @@ import ScorecardModal from '../components/ScorecardModal';
 import { subscribeToInterviewSSE, submitAnswer, fetchScorecard, triggerHintAPI, triggerPanicAPI } from '../services/api';
 
 export default function Interview({ sessionData, contextData, onRestart }) {
-  const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [streamingText, setStreamingText] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
@@ -16,12 +14,19 @@ export default function Interview({ sessionData, contextData, onRestart }) {
   const [scorecard, setScorecard] = useState(null);
   const [isScorecardOpen, setIsScorecardOpen] = useState(false);
 
+  const cleanupStreamRef = useRef(null);
+  const isInitialMountedRef = useRef(false);
+
   // Subscribe to SSE stream when starting or sending answer
   const startStream = (answerText = null, mode = 'normal') => {
+    if (cleanupStreamRef.current) {
+      cleanupStreamRef.current();
+    }
+
     setIsStreaming(true);
     setStreamingText('');
 
-    subscribeToInterviewSSE(
+    cleanupStreamRef.current = subscribeToInterviewSSE(
       sessionData.session_id,
       answerText,
       (data) => {
@@ -40,13 +45,12 @@ export default function Interview({ sessionData, contextData, onRestart }) {
         setIsStreaming(false);
       },
       () => {
-        // Stream completed chunk loop
         setIsStreaming(false);
         setStreamingText((finalText) => {
-          if (finalText) {
+          if (finalText.trim()) {
             setMessages((prev) => [
               ...prev,
-              { role: 'interviewer', content: finalText, question: questionCount }
+              { role: 'interviewer', content: finalText.trim(), question: questionCount }
             ]);
           }
           return '';
@@ -57,8 +61,15 @@ export default function Interview({ sessionData, contextData, onRestart }) {
   };
 
   useEffect(() => {
-    // Initial opening question stream trigger
-    startStream();
+    if (!isInitialMountedRef.current) {
+      isInitialMountedRef.current = true;
+      startStream();
+    }
+    return () => {
+      if (cleanupStreamRef.current) {
+        cleanupStreamRef.current();
+      }
+    };
   }, []);
 
   const handleSendAnswer = async (answer) => {
@@ -92,15 +103,14 @@ export default function Interview({ sessionData, contextData, onRestart }) {
     try {
       const scorecardData = await fetchScorecard(sessionData.session_id);
       setScorecard(scorecardData);
-      // Navigate to dedicated sharable scorecard route
-      navigate(`/scorecard/${sessionData.session_id}`);
+      setIsScorecardOpen(true);
     } catch (e) {
       console.error('Failed to load scorecard', e);
     }
   };
 
   return (
-    <div className="h-[calc(100vh-57px)] flex flex-col bg-[#080c14] overflow-hidden">
+    <div className="h-screen flex flex-col bg-[#0b0f19] overflow-hidden">
       <Header
         questionCount={questionCount}
         level={sessionData.level}
