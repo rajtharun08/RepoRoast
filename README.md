@@ -6,12 +6,35 @@ The architecture dynamically trims repository context passed to LLM context wind
 
 ---
 
+## 🚀 Quick Start with Docker (Recommended)
+
+Run the entire application (Backend + Frontend + Nginx + SSE Streaming Proxy) with a single command using Docker Compose:
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/rajtharun08/RepoRoast.git
+cd RepoRoast
+
+# 2. Set your Gemini API key
+export GEMINI_API_KEY="your-gemini-api-key"
+
+# 3. Launch full stack with Docker Compose
+docker compose up --build
+```
+
+- **Frontend Application**: [http://localhost:3000](http://localhost:3000)
+- **FastAPI Backend Server**: [http://localhost:8000](http://localhost:8000)
+- **Interactive Swagger Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+
+---
+
 ## System Architecture
 
 ```mermaid
 graph TD
     User[Candidate / User] <-->|Web Speech / Touch Input| Frontend[React + Tailwind CSS Frontend]
-    Frontend <-->|SSE text/event-stream| FastAPI[FastAPI Backend Server]
+    Frontend <-->|SSE text/event-stream| Nginx[Nginx Reverse Proxy]
+    Nginx <-->|Port 8000| FastAPI[FastAPI Backend Server]
     FastAPI <-->|Rate Limiter| SlowAPI[SlowAPI Middleware]
     FastAPI <-->|Prompt & Memory Management| LangChain[LangChain Pipeline]
     LangChain <-->|Streaming Inference| Gemini[Google Gemini API]
@@ -58,24 +81,14 @@ sequenceDiagram
 ## Core Capabilities
 
 - **Real-Time Token Streaming**: Built on FastAPI `StreamingResponse` emitting Server-Sent Events (`text/event-stream`) to browser `EventSource` subscribers for immediate progressive text rendering.
-- **Interviewer Personas**: Supports selectable presets (**FAANG Gatekeeper**, **Startup CTO**, **Pedantic Security Auditor**, **Empathetic Mentor**) or custom injected system prompts.
+- **Interviewer Personas**: Supports selectable presets (**FAANG Gatekeeper**, **Startup CTO**, **Pedantic Security Auditor**, **Empathetic Mentor**, **Batman**) or custom injected system prompts.
 - **Adaptive Pivots and Panic Button**: Includes hint request logic and a "Reveal Answer" panic override that forces the AI to explain technical concepts before transitioning to the next question.
 - **Speech Input**: Integrates native browser Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`) for hands-free audio answers with live transcript display.
 - **Comprehensive Scorecard**: Sessions are capped at 5 technical questions, concluding with an evaluation matrix covering Technical Depth, System Architecture, Communication Clarity, Problem Solving, and Code Quality.
 
 ---
 
-## Repository Navigation
-
-Detailed subsystem documentation is available in each respective directory:
-
-- [Backend Documentation](file:///d:/RepoRoast/backend/README.md): API routes, request/response schemas, rate limiting, and test execution commands.
-- [Frontend Documentation](file:///d:/RepoRoast/frontend/README.md): Component structure, state management, SSE streaming integration, and Web Speech API setup.
-- [Database Schema](file:///d:/RepoRoast/supabase/schema.sql): Supabase PostgreSQL tables, constraints, and indexes.
-
----
-
-## Prerequisites & Installation
+## Manual Setup (Without Docker)
 
 ### Prerequisites
 - Python 3.10+
