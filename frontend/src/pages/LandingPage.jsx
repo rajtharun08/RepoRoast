@@ -36,8 +36,8 @@ const PERSONA_PREVIEWS = [
     response: 'Subsequent queries wait in an async queue until a connection is released, or raise a connection pool timeout exception if pool_timeout is exceeded.'
   },
   {
-    id: 'batman',
-    name: 'Batman (Gotham Auditor)',
+    id: 'custom',
+    name: 'Custom',
     level: 'Level 5 (Vigilante Audit)',
     icon: Shield,
     question: 'I watched Gotham\'s infrastructure crumble because of unvalidated edge cases. Looking at your route handlers in routes/auth.py, how do you ensure zero single-point-of-failure when your primary database cluster goes offline in the dark?',
@@ -124,7 +124,7 @@ export default function LandingPage() {
                 <span className="text-sm font-mono text-zinc-400 ml-2">fastapi/fastapi • {activePreview.level}</span>
               </div>
               <span className="text-xs font-mono text-zinc-100 bg-zinc-800 px-3 py-1 rounded-md border border-zinc-700 font-bold">
-                {activePreview.id === 'batman' ? '🦇 ' : ''}{activePreview.name}
+                {activePreview.id === 'custom' ? '🦇 Custom: ' : ''}{activePreview.name}
               </span>
             </div>
 
