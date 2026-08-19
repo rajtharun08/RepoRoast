@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import ChatArena from '../components/ChatArena';
 import CodeContextModal from '../components/CodeContextModal';
@@ -6,6 +7,7 @@ import ScorecardModal from '../components/ScorecardModal';
 import { subscribeToInterviewSSE, submitAnswer, fetchScorecard, triggerHintAPI, triggerPanicAPI } from '../services/api';
 
 export default function Interview({ sessionData, contextData, onRestart }) {
+  const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [streamingText, setStreamingText] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
@@ -90,14 +92,15 @@ export default function Interview({ sessionData, contextData, onRestart }) {
     try {
       const scorecardData = await fetchScorecard(sessionData.session_id);
       setScorecard(scorecardData);
-      setIsScorecardOpen(true);
+      // Navigate to dedicated sharable scorecard route
+      navigate(`/scorecard/${sessionData.session_id}`);
     } catch (e) {
       console.error('Failed to load scorecard', e);
     }
   };
 
   return (
-    <div className="h-screen flex flex-col bg-roast-dark overflow-hidden">
+    <div className="h-[calc(100vh-57px)] flex flex-col bg-[#080c14] overflow-hidden">
       <Header
         questionCount={questionCount}
         level={sessionData.level}

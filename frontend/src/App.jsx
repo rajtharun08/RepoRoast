@@ -1,13 +1,25 @@
 import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
+import Navbar from './components/Navbar';
+import LandingPage from './pages/LandingPage';
 import Home from './pages/Home';
 import Interview from './pages/Interview';
-import { ingestRepo, startInterviewSession } from './services/api';
+import ScorecardPage from './pages/ScorecardPage';
+import { ingestRepo, startInterviewSession, USE_MOCK_DATA, setMockMode } from './services/api';
 
-export default function App() {
+function AppContent() {
+  const navigate = useNavigate();
   const [sessionData, setSessionData] = useState(null);
   const [contextData, setContextData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isMockMode, setIsMockModeState] = useState(USE_MOCK_DATA);
+
+  const toggleMockMode = () => {
+    const nextVal = !isMockMode;
+    setIsMockModeState(nextVal);
+    setMockMode(nextVal);
+  };
 
   const handleStartInterview = async ({ repoUrl, level, persona, customPersona }) => {
     setIsLoading(true);
@@ -20,9 +32,12 @@ export default function App() {
       // Step 2: Initialize interview session
       const session = await startInterviewSession(repoUrl, persona, customPersona, level);
       setSessionData(session);
+
+      // Step 3: Navigate to active interview route
+      navigate('/interview');
     } catch (err) {
       console.error(err);
-      setError(err.message || 'Failed to start interview');
+      setError(err.message || 'Failed to start interview session');
     } finally {
       setIsLoading(false);
     }
@@ -32,25 +47,54 @@ export default function App() {
     setSessionData(null);
     setContextData(null);
     setError(null);
+    navigate('/setup');
   };
 
   return (
-    <div className="min-h-screen bg-roast-dark font-sans">
+    <div className="min-h-screen bg-[#080c14] font-sans text-slate-100 flex flex-col">
+      <Navbar isMockMode={isMockMode} onToggleMockMode={toggleMockMode} />
+
       {error && (
-        <div className="bg-red-500/20 border border-red-500/50 text-red-200 text-xs p-3 text-center sticky top-0 z-50">
+        <div className="bg-rose-500/20 border-b border-rose-500/50 text-rose-200 text-xs p-3 text-center sticky top-[57px] z-50 font-mono">
           ⚠️ {error}
         </div>
       )}
 
-      {!sessionData ? (
-        <Home onStartInterview={handleStartInterview} isLoading={isLoading} />
-      ) : (
-        <Interview
-          sessionData={sessionData}
-          contextData={contextData}
-          onRestart={handleRestart}
-        />
-      )}
+      <main className="flex-1 flex flex-col">
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route
+            path="/setup"
+            element={
+              <Home onStartInterview={handleStartInterview} isLoading={isLoading} />
+            }
+          />
+          <Route
+            path="/interview"
+            element={
+              sessionData ? (
+                <Interview
+                  sessionData={sessionData}
+                  contextData={contextData}
+                  onRestart={handleRestart}
+                />
+              ) : (
+                <Home onStartInterview={handleStartInterview} isLoading={isLoading} />
+              )
+            }
+          />
+          <Route path="/scorecard/:sessionId" element={<ScorecardPage />} />
+          <Route path="/scorecard" element={<ScorecardPage />} />
+        </Routes>
+      </main>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <Router>
+      <AppContent />
+    </Router>
   );
 }
