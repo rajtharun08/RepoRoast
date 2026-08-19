@@ -15,8 +15,10 @@ import {
   Loader2,
   Sliders,
   Layers,
-  Code2
+  Code2,
+  Zap
 } from 'lucide-react';
+import { USE_MOCK_DATA, setMockMode } from '../services/api';
 
 const PRESET_LIST = [
   { 
@@ -115,9 +117,26 @@ export default function Home({ onStartInterview, isLoading }) {
         
         {/* Header Hero Section */}
         <div className="text-center space-y-4">
-          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-red-500/10 border border-orange-500/30 text-orange-400 px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide shadow-sm">
-            <Sparkles className="w-4 h-4 text-orange-400" />
-            <span>AI-Driven Technical Interview Escalation Platform</span>
+          <div className="flex items-center justify-center gap-3">
+            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-red-500/10 border border-orange-500/30 text-orange-400 px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide shadow-sm">
+              <Sparkles className="w-4 h-4 text-orange-400" />
+              <span>AI-Driven Technical Interview Escalation Platform</span>
+            </div>
+
+            {/* Interactive Mock Mode Toggle Pill */}
+            <button
+              type="button"
+              onClick={toggleMockMode}
+              className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer border ${
+                isMockMode 
+                  ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40 shadow-md ring-1 ring-emerald-500/30'
+                  : 'bg-slate-800/80 text-slate-400 border-slate-700 hover:text-slate-200'
+              }`}
+              title="Click to toggle between offline Mock Data Mode and live Gemini API Mode"
+            >
+              <Zap className={`w-3.5 h-3.5 ${isMockMode ? 'text-emerald-400 fill-emerald-400' : 'text-slate-500'}`} />
+              <span>{isMockMode ? 'Mock Mode (0 API Tokens)' : 'Live Gemini API Mode'}</span>
+            </button>
           </div>
 
           <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-white">

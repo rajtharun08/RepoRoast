@@ -15,7 +15,7 @@ export default function Interview({ sessionData, contextData, onRestart }) {
   const [isScorecardOpen, setIsScorecardOpen] = useState(false);
 
   // Subscribe to SSE stream when starting or sending answer
-  const startStream = (answerText = null) => {
+  const startStream = (answerText = null, mode = 'normal') => {
     setIsStreaming(true);
     setStreamingText('');
 
@@ -49,7 +49,8 @@ export default function Interview({ sessionData, contextData, onRestart }) {
           }
           return '';
         });
-      }
+      },
+      mode
     );
   };
 
@@ -64,7 +65,7 @@ export default function Interview({ sessionData, contextData, onRestart }) {
       { role: 'candidate', content: answer, question: questionCount }
     ]);
     await submitAnswer(sessionData.session_id, answer);
-    startStream(answer);
+    startStream(answer, 'normal');
   };
 
   const handleTriggerHint = async () => {
@@ -72,10 +73,8 @@ export default function Interview({ sessionData, contextData, onRestart }) {
       ...prev,
       { role: 'candidate', content: '[Requested Hint]', question: questionCount }
     ]);
-    setIsStreaming(true);
-    setStreamingText('');
     await triggerHintAPI(sessionData.session_id);
-    startStream();
+    startStream(null, 'hint');
   };
 
   const handleTriggerPanic = async () => {
@@ -83,10 +82,8 @@ export default function Interview({ sessionData, contextData, onRestart }) {
       ...prev,
       { role: 'candidate', content: '[Triggered Panic Button - Reveal Answer]', question: questionCount }
     ]);
-    setIsStreaming(true);
-    setStreamingText('');
     await triggerPanicAPI(sessionData.session_id);
-    startStream();
+    startStream(null, 'panic');
   };
 
   const handleInterviewComplete = async () => {
@@ -109,6 +106,7 @@ export default function Interview({ sessionData, contextData, onRestart }) {
         onInspectContext={() => setIsContextOpen(true)}
         onTriggerHint={handleTriggerHint}
         onTriggerPanic={handleTriggerPanic}
+        onRestart={onRestart}
         isStreaming={isStreaming}
       />
 
