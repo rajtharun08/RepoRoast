@@ -33,3 +33,13 @@ async def ingest_repository(request: Request, body: RepoIngestRequest):
         raise HTTPException(status_code=400, detail=str(err))
     except Exception as err:
         raise HTTPException(status_code=500, detail=f"Failed to fetch repository context: {str(err)}")
+
+@router.get("/user/{username}")
+@limiter.limit("30/minute")
+async def get_user_repositories(request: Request, username: str):
+    """Fetch public repositories for a GitHub user or organization."""
+    try:
+        repos = await GitHubService.fetch_user_repos(username)
+        return repos
+    except Exception as err:
+        raise HTTPException(status_code=400, detail=f"Failed to fetch user repositories: {str(err)}")

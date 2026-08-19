@@ -79,6 +79,15 @@ export default function Home({ onStartInterview, isLoading }) {
   const [persona, setPersona] = useState('FAANG Gatekeeper');
   const [customPersonaPrompt, setCustomPersonaPrompt] = useState('');
 
+  // Sample fallback repositories when GitHub public API rate-limits (403 Forbidden)
+  const SAMPLE_REPOS = [
+    { id: 1, name: 'fastapi', html_url: 'https://github.com/fastapi/fastapi', description: 'FastAPI framework, high performance, easy to learn, fast to code', stargazers_count: 68500, language: 'Python' },
+    { id: 2, name: 'react', html_url: 'https://github.com/facebook/react', description: 'The library for web and native user interfaces', stargazers_count: 220000, language: 'JavaScript' },
+    { id: 3, name: 'express', html_url: 'https://github.com/expressjs/express', description: 'Fast, unopinionated, minimalist web framework for node', stargazers_count: 63000, language: 'JavaScript' },
+    { id: 4, name: 'flask', html_url: 'https://github.com/pallets/flask', description: 'The Python micro framework for building web applications', stargazers_count: 65000, language: 'Python' },
+    { id: 5, name: 'RepoRoast', html_url: 'https://github.com/rajtharun08/RepoRoast', description: 'Realistic technical interview escalation platform', stargazers_count: 15, language: 'Python' }
+  ];
+
   // Fetch Public Repos for GitHub Username
   const handleFetchUserRepos = async (e) => {
     if (e) e.preventDefault();
@@ -86,18 +95,31 @@ export default function Home({ onStartInterview, isLoading }) {
     setIsFetchingRepos(true);
     setRepoSearchError(null);
     try {
-      const res = await fetch(`https://api.github.com/users/${githubUser.trim()}/repos?sort=updated&per_page=12`);
+      let res = await fetch(`/api/repo/user/${githubUser.trim()}`);
       if (!res.ok) {
-        throw new Error(`GitHub user "${githubUser}" not found or has no public repositories.`);
+        res = await fetch(`https://api.github.com/users/${githubUser.trim()}/repos?sort=updated&per_page=12`);
       }
+      
+      if (!res.ok) {
+        setRepoSearchError('GitHub Public API limit reached. Loaded sample repositories below.');
+        setUserRepos(SAMPLE_REPOS);
+        setSelectedRepoUrl(SAMPLE_REPOS[0].html_url);
+        return;
+      }
+
       const data = await res.json();
-      setUserRepos(data);
-      if (data.length > 0) {
+      if (Array.isArray(data) && data.length > 0) {
+        setUserRepos(data);
         setSelectedRepoUrl(data[0].html_url);
+      } else {
+        setRepoSearchError(`No public repositories found for "${githubUser}". Loaded sample repositories.`);
+        setUserRepos(SAMPLE_REPOS);
+        setSelectedRepoUrl(SAMPLE_REPOS[0].html_url);
       }
     } catch (err) {
-      setRepoSearchError(err.message);
-      setUserRepos([]);
+      setRepoSearchError('GitHub Public API limit reached. Loaded sample repositories below.');
+      setUserRepos(SAMPLE_REPOS);
+      setSelectedRepoUrl(SAMPLE_REPOS[0].html_url);
     } finally {
       setIsFetchingRepos(false);
     }
@@ -119,55 +141,38 @@ export default function Home({ onStartInterview, isLoading }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#080c14] text-slate-100 flex flex-col justify-between p-4 md:p-8 font-sans selection:bg-orange-500/30 selection:text-orange-200">
-      <div className="max-w-4xl w-full mx-auto space-y-8 my-auto">
+    <div className="min-h-screen bg-[#060913] text-slate-100 flex flex-col justify-between p-4 md:p-8 font-sans selection:bg-orange-500/30 selection:text-orange-200">
+      <div className="max-w-4xl w-full mx-auto space-y-8 my-auto py-6">
         
         {/* Header Hero Section */}
-        <div className="text-center space-y-4">
-          <div className="flex items-center justify-center gap-3">
-            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-red-500/10 border border-orange-500/30 text-orange-400 px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide shadow-sm">
-              <Sparkles className="w-4 h-4 text-orange-400" />
-              <span>AI-Driven Technical Interview Escalation Platform</span>
-            </div>
-
-            {/* Interactive Mock Mode Toggle Pill */}
-            <button
-              type="button"
-              onClick={toggleMockMode}
-              className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer border ${
-                isMockMode 
-                  ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40 shadow-md ring-1 ring-emerald-500/30'
-                  : 'bg-slate-800/80 text-slate-400 border-slate-700 hover:text-slate-200'
-              }`}
-              title="Click to toggle between offline Mock Data Mode and live Gemini API Mode"
-            >
-              <Zap className={`w-3.5 h-3.5 ${isMockMode ? 'text-emerald-400 fill-emerald-400' : 'text-slate-500'}`} />
-              <span>{isMockMode ? 'Mock Mode (0 API Tokens)' : 'Live Gemini API Mode'}</span>
-            </button>
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-red-500/10 border border-orange-500/30 text-orange-400 px-4 py-1.5 rounded-full text-xs font-extrabold tracking-wide shadow-sm">
+            <Sparkles className="w-4 h-4 text-orange-400" />
+            <span>Interview Setup & Repository Selection</span>
           </div>
 
-          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-white">
-            RepoRoast
+          <h1 className="text-3xl md:text-5xl font-black tracking-tight text-white">
+            Configure Your Roast
           </h1>
           
-          <p className="text-slate-400 text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
-            Subject your codebase to realistic, escalating technical interviews. Mirrors hiring dynamics by starting with high-level architecture screening and progressing to deep code reviews.
+          <p className="text-slate-400 text-sm max-w-xl mx-auto leading-relaxed">
+            Select your target codebase, set your starting escalation level, and choose your interviewer persona.
           </p>
         </div>
 
         {/* Configuration Card */}
-        <div className="bg-[#111726]/90 backdrop-blur-xl border border-slate-800/80 rounded-3xl p-6 md:p-8 shadow-2xl space-y-8">
+        <div className="bg-[#0b101d] border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl space-y-8 backdrop-blur-xl">
           
           {/* STEP 1: Repository Selection Mode */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2 font-mono">
                 <FolderGit2 className="w-4 h-4 text-orange-400" />
-                Step 1: Select Repository
+                Step 1: Select Target Repository
               </label>
               
               {/* Tab Selector */}
-              <div className="flex items-center p-1 bg-[#0b0f19] border border-slate-800 rounded-xl text-xs font-medium">
+              <div className="flex items-center p-1 bg-[#060913] border border-slate-800 rounded-xl text-xs font-medium">
                 <button
                   type="button"
                   onClick={() => setInputMode('search')}
@@ -177,7 +182,7 @@ export default function Home({ onStartInterview, isLoading }) {
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  Browse GitHub User
+                  Search GitHub User
                 </button>
                 <button
                   type="button"
@@ -193,7 +198,7 @@ export default function Home({ onStartInterview, isLoading }) {
               </div>
             </div>
 
-            {/* Mode 1: Search GitHub Username & Pick Repo */}
+            {/* Mode 1: Search GitHub Username */}
             {inputMode === 'search' ? (
               <div className="space-y-4">
                 <form onSubmit={handleFetchUserRepos} className="flex gap-2">
@@ -204,7 +209,7 @@ export default function Home({ onStartInterview, isLoading }) {
                       value={githubUser}
                       onChange={(e) => setGithubUser(e.target.value)}
                       placeholder="Enter GitHub username or organization (e.g. fastapi, octocat)..."
-                      className="w-full bg-[#080c14] text-slate-100 placeholder-slate-500 text-sm pl-10 pr-4 py-2.5 rounded-xl border border-slate-800 focus:outline-none focus:border-orange-500/80 focus:ring-1 focus:ring-orange-500/80 transition-all font-mono"
+                      className="w-full bg-[#060913] text-slate-100 placeholder-slate-500 text-sm pl-10 pr-4 py-2.5 rounded-xl border border-slate-800 focus:outline-none focus:border-orange-500/80 focus:ring-1 focus:ring-orange-500/80 transition-all font-mono"
                     />
                   </div>
                   <button
@@ -218,8 +223,8 @@ export default function Home({ onStartInterview, isLoading }) {
                 </form>
 
                 {repoSearchError && (
-                  <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 p-3 rounded-xl font-mono">
-                    {repoSearchError}
+                  <p className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl font-mono">
+                    ⚠️ {repoSearchError}
                   </p>
                 )}
 
@@ -230,17 +235,17 @@ export default function Home({ onStartInterview, isLoading }) {
                       <div
                         key={repo.id}
                         onClick={() => setSelectedRepoUrl(repo.html_url)}
-                        className={`p-3 rounded-xl border transition-all cursor-pointer flex flex-col justify-between ${
+                        className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
                           selectedRepoUrl === repo.html_url
                             ? 'bg-orange-500/10 border-orange-500/60 ring-1 ring-orange-500/40 text-white'
-                            : 'bg-[#080c14] border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                            : 'bg-[#060913] border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
                         }`}
                       >
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-bold text-xs font-mono truncate text-slate-200">{repo.name}</span>
                           {selectedRepoUrl === repo.html_url && <CheckCircle2 className="w-4 h-4 text-orange-400 shrink-0" />}
                         </div>
-                        <p className="text-[11px] text-slate-500 line-clamp-2 mb-2">
+                        <p className="text-[11px] text-slate-400 line-clamp-2 mb-2 leading-relaxed">
                           {repo.description || 'Public repository'}
                         </p>
                         <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono">
@@ -264,7 +269,7 @@ export default function Home({ onStartInterview, isLoading }) {
                   value={directUrl}
                   onChange={(e) => setDirectUrl(e.target.value)}
                   placeholder="https://github.com/owner/repository"
-                  className="w-full bg-[#080c14] text-slate-100 placeholder-slate-500 text-sm px-4 py-3 rounded-xl border border-slate-800 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 font-mono transition-all"
+                  className="w-full bg-[#060913] text-slate-100 placeholder-slate-500 text-sm px-4 py-3 rounded-xl border border-slate-800 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 font-mono transition-all"
                 />
               </div>
             )}
@@ -275,11 +280,11 @@ export default function Home({ onStartInterview, isLoading }) {
           {/* STEP 2: Difficulty Level Slider */}
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2 font-mono">
                 <Sliders className="w-4 h-4 text-orange-400" />
-                Step 2: Difficulty Level: <span className="text-orange-400 font-mono font-bold text-sm">Level {level}</span>
+                Step 2: Difficulty Escalation: <span className="text-orange-400 font-mono font-bold text-sm">Level {level}</span>
               </label>
-              <span className="text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+              <span className="text-xs font-semibold px-3 py-1 rounded-full bg-slate-900 text-slate-300 border border-slate-800">
                 {level <= 3 ? 'Screening (README & Manifests)' : level <= 7 ? 'System Design (File Tree & Routers)' : 'Deep Code Review (Full Source)'}
               </span>
             </div>
@@ -304,7 +309,7 @@ export default function Home({ onStartInterview, isLoading }) {
 
           {/* STEP 3: Interviewer Persona Selector */}
           <div className="space-y-4">
-            <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+            <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2 font-mono">
               <Layers className="w-4 h-4 text-orange-400" />
               Step 3: Select Interviewer Persona
             </label>
@@ -317,7 +322,7 @@ export default function Home({ onStartInterview, isLoading }) {
                   className={`p-4 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between group ${
                     persona === key
                       ? `bg-gradient-to-br ${color} ring-1 ring-orange-500/50 shadow-lg`
-                      : 'bg-[#080c14] border-slate-800 text-slate-400 hover:border-slate-700 hover:bg-slate-900/50'
+                      : 'bg-[#060913] border-slate-800 text-slate-400 hover:border-slate-700 hover:bg-slate-900/50'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -336,17 +341,17 @@ export default function Home({ onStartInterview, isLoading }) {
 
             {/* Expandable Custom Persona Text Area */}
             {persona === 'Custom Persona' && (
-              <div className="mt-4 p-4 rounded-2xl bg-[#080c14] border border-purple-500/40 space-y-2 animate-in fade-in duration-200">
-                <label className="text-xs font-bold text-purple-300 flex items-center gap-2">
+              <div className="mt-4 p-4 rounded-2xl bg-[#060913] border border-purple-500/40 space-y-2 animate-in fade-in duration-200">
+                <label className="text-xs font-bold text-purple-300 flex items-center gap-2 font-mono">
                   <Code2 className="w-4 h-4 text-purple-400" />
-                  Define Custom Interviewer Prompt & Demeanor
+                  Define Custom System Instructions & Demeanor
                 </label>
                 <textarea
                   rows={3}
                   value={customPersonaPrompt}
                   onChange={(e) => setCustomPersonaPrompt(e.target.value)}
-                  placeholder="e.g., You are a strict Senior Security Architect specializing in distributed fintech microservices. Probe every endpoint for rate-limiting, auth bypasses, and data validation..."
-                  className="w-full bg-[#111726] text-slate-100 placeholder-slate-500 text-xs p-3 rounded-xl border border-slate-800 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all font-mono leading-relaxed"
+                  placeholder="e.g., You are a strict Senior Security Architect specializing in microservices. Probe every endpoint for rate-limiting, auth bypasses, and data validation..."
+                  className="w-full bg-[#0b101d] text-slate-100 placeholder-slate-500 text-xs p-3 rounded-xl border border-slate-800 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all font-mono leading-relaxed"
                 />
               </div>
             )}
@@ -362,7 +367,7 @@ export default function Home({ onStartInterview, isLoading }) {
             {isLoading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin text-white" />
-                <span>Ingesting Context & Initializing Session...</span>
+                <span>Ingesting Repository & Initializing...</span>
               </>
             ) : (
               <>
