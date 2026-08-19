@@ -57,9 +57,10 @@ export default function VoiceInput({ onTranscript, disabled }) {
   if (!isSupported) {
     return (
       <button
+        type="button"
         disabled
         title="Web Speech API not supported in this browser"
-        className="p-2.5 rounded-lg bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed text-xs flex items-center gap-1.5"
+        className="p-3 rounded-xl bg-slate-900 text-slate-600 border border-slate-800 cursor-not-allowed text-xs flex items-center gap-1.5"
       >
         <MicOff className="w-4 h-4" />
       </button>
@@ -71,11 +72,11 @@ export default function VoiceInput({ onTranscript, disabled }) {
       type="button"
       onClick={toggleListening}
       disabled={disabled}
-      className={`p-2.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all ${
+      className={`px-3.5 py-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
         isListening
-          ? 'bg-red-500 text-white border-red-400 ring-2 ring-red-500/50 animate-pulse'
-          : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
-      } disabled:opacity-50`}
+          ? 'bg-rose-600 text-white border-rose-400 ring-2 ring-rose-500/50 animate-pulse'
+          : 'bg-[#080c14] hover:bg-slate-900 text-slate-300 border-slate-800'
+      } disabled:opacity-50 disabled:cursor-not-allowed`}
       title={isListening ? 'Stop Voice Recording' : 'Start Voice Recording'}
     >
       {isListening ? (

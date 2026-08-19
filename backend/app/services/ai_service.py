@@ -90,6 +90,7 @@ class AIService:
                         await asyncio.sleep(0.01)
                 
                 session["history"].append({"role": "interviewer", "content": full_response, "question": question_count})
+                yield "data: [DONE]\n\n"
                 return
             except Exception as e:
                 # Fallback to simulated response stream if API call encounters an issue
@@ -105,6 +106,7 @@ class AIService:
             await asyncio.sleep(0.04)
 
         session["history"].append({"role": "interviewer", "content": full_response, "question": question_count})
+        yield "data: [DONE]\n\n"
 
     @classmethod
     def _generate_mock_response(cls, session: Dict[str, Any], candidate_answer: str, is_hint: bool, is_panic: bool, q_num: int, level: int) -> str:
