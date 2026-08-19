@@ -5,6 +5,7 @@ from slowapi.errors import RateLimitExceeded
 
 from app.core.config import settings
 from app.core.rate_limiter import limiter
+from app.api.repo import router as repo_router
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -26,6 +27,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Register API Routers
+app.include_router(repo_router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 @limiter.limit("30/minute")
