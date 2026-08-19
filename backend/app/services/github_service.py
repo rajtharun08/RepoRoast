@@ -1,4 +1,5 @@
 import re
+import asyncio
 import httpx
 from typing import Dict, Any, List, Optional
 
@@ -38,32 +39,30 @@ class GitHubService:
         raise ValueError(f"Invalid GitHub repository URL or format: '{url}'")
 
     @classmethod
-    async def fetch_repo_file_tree(cls, owner: str, repo: str) -> List[Dict[str, Any]]:
-        """Fetch git tree via GitHub API."""
+    async def fetch_repo_file_tree(cls, client: httpx.AsyncClient, owner: str, repo: str) -> List[Dict[str, Any]]:
+        """Fetch git tree via GitHub API with fast 3.0s timeout."""
         for branch in ["main", "master"]:
             api_url = f"https://api.github.com/repos/{owner}/{repo}/git/trees/{branch}?recursive=1"
             try:
-                async with httpx.AsyncClient(timeout=10.0) as client:
-                    res = await client.get(api_url, headers={"User-Agent": "RepoRoast-App"})
-                    if res.status_code == 200:
-                        data = res.json()
-                        tree = data.get("tree", [])
-                        if tree:
-                            return tree
+                res = await client.get(api_url, headers={"User-Agent": "RepoRoast-App"})
+                if res.status_code == 200:
+                    data = res.json()
+                    tree = data.get("tree", [])
+                    if tree:
+                        return tree
             except Exception as e:
                 print(f"Git tree fetch warning for {owner}/{repo}: {e}")
         return []
 
     @classmethod
-    async def fetch_raw_file_content(cls, owner: str, repo: str, path: str) -> Optional[str]:
+    async def fetch_raw_file_content(cls, client: httpx.AsyncClient, owner: str, repo: str, path: str) -> Optional[str]:
         """Fetch raw file content directly from raw.githubusercontent.com."""
         for branch in ["main", "master"]:
             raw_url = f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}"
             try:
-                async with httpx.AsyncClient(timeout=10.0) as client:
-                    res = await client.get(raw_url, headers={"User-Agent": "RepoRoast-App"})
-                    if res.status_code == 200:
-                        return res.text
+                res = await client.get(raw_url, headers={"User-Agent": "RepoRoast-App"})
+                if res.status_code == 200:
+                    return res.text
             except Exception:
                 continue
         return None
@@ -96,50 +95,59 @@ class GitHubService:
 
     @classmethod
     async def get_level_context(cls, repo_url: str, level: int) -> Dict[str, Any]:
-        """Generate trimmed level context payload for Gemini prompt injection."""
+        """Generate trimmed level context payload for Gemini prompt injection using fast concurrent HTTP requests."""
         owner, repo = cls.parse_repo_url(repo_url)
-        tree = await cls.fetch_repo_file_tree(owner, repo)
-        filtered_paths = cls.filter_file_tree_by_level(tree, level)
         
-        file_contents = {}
-        
-        # Fetch README
-        readme_content = await cls.fetch_raw_file_content(owner, repo, "README.md")
-        if not readme_content:
-            readme_content = await cls.fetch_raw_file_content(owner, repo, "readme.md")
-        if readme_content:
-            file_contents["README.md"] = readme_content[:3000]
-            if "README.md" not in filtered_paths:
-                filtered_paths.append("README.md")
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            tree = await cls.fetch_repo_file_tree(client, owner, repo)
+            filtered_paths = cls.filter_file_tree_by_level(tree, level)
+            file_contents = {}
 
-        # Fetch key dependency manifest files
-        for dep in DEPENDENCY_FILES:
-            content = await cls.fetch_raw_file_content(owner, repo, dep)
-            if content:
-                file_contents[dep] = content[:2000]
-                if dep not in filtered_paths:
-                    filtered_paths.append(dep)
+            # Fetch README concurrently
+            readme_task = asyncio.create_task(cls.fetch_raw_file_content(client, owner, repo, "README.md"))
+            
+            # Fetch Dependency manifests concurrently
+            dep_tasks = {
+                dep: asyncio.create_task(cls.fetch_raw_file_content(client, owner, repo, dep))
+                for dep in DEPENDENCY_FILES
+            }
 
-        # For System Design / Deep Code Review, fetch core source files
-        if level >= 4:
-            router_count = 0
-            for path in filtered_paths:
-                if router_count >= 5:
-                    break
-                if any(re.search(pat, path, re.IGNORECASE) for pat in ROUTING_PATTERNS) and path not in file_contents:
-                    content = await cls.fetch_raw_file_content(owner, repo, path)
+            readme_content = await readme_task
+            if readme_content:
+                file_contents["README.md"] = readme_content[:3000]
+                if "README.md" not in filtered_paths:
+                    filtered_paths.append("README.md")
+
+            for dep, task in dep_tasks.items():
+                content = await task
+                if content:
+                    file_contents[dep] = content[:2000]
+                    if dep not in filtered_paths:
+                        filtered_paths.append(dep)
+
+            # If System Design or Deep Code Review, fetch top router files concurrently
+            if level >= 4:
+                router_paths = [
+                    p for p in filtered_paths 
+                    if any(re.search(pat, p, re.IGNORECASE) for pat in ROUTING_PATTERNS) and p not in file_contents
+                ][:4]
+                
+                router_tasks = {
+                    p: asyncio.create_task(cls.fetch_raw_file_content(client, owner, repo, p))
+                    for p in router_paths
+                }
+                for p, task in router_tasks.items():
+                    content = await task
                     if content:
-                        file_contents[path] = content[:2500]
-                        router_count += 1
+                        file_contents[p] = content[:2500]
 
-        # If file_tree was empty due to GitHub API rate limit on git/trees, build synthetic tree from fetched files
+        # Synthetic fallback if git tree returned 403 rate limit
         if not filtered_paths and file_contents:
             filtered_paths = list(file_contents.keys())
 
-        # If completely empty, provide fallback README representation
         if not filtered_paths:
             filtered_paths = ["README.md"]
-            file_contents["README.md"] = f"# {repo}\nRepository code structure for {owner}/{repo}."
+            file_contents["README.md"] = f"# {repo}\nRepository codebase for {owner}/{repo}."
 
         return {
             "owner": owner,
