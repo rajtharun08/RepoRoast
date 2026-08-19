@@ -445,7 +445,7 @@ export default function Home({ onStartInterview, isLoading }) {
                 rows={3}
                 value={customPersonaPrompt}
                 onChange={(e) => setCustomPersonaPrompt(e.target.value)}
-                placeholder="Specify custom system instructions, technical focus areas, and reviewer demeanor..."
+                placeholder="Type any name or character (e.g. 'Batman', 'Linus Torvalds', 'Gordon Ramsay') or custom interviewer instructions..."
                 className="w-full bg-zinc-900 text-zinc-100 placeholder-zinc-500 text-xs p-3.5 rounded-xl border border-zinc-800 focus:outline-none focus:border-zinc-700 font-mono leading-relaxed"
               />
             </div>
