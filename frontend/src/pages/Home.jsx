@@ -14,8 +14,7 @@ import {
   Loader2,
   Sliders,
   Layers,
-  Code2,
-  Sparkles
+  Code2
 } from 'lucide-react';
 import { USE_MOCK_DATA, setMockMode } from '../services/api';
 
@@ -55,14 +54,6 @@ const PRESET_LIST = [
     desc: 'Specify custom interviewer background, tone, and specific code review priorities.', 
     icon: UserCog
   }
-];
-
-const QUICK_SUGGESTIONS = [
-  { name: 'fastapi/fastapi', label: 'FastAPI' },
-  { name: 'facebook/react', label: 'React' },
-  { name: 'expressjs/express', label: 'Express' },
-  { name: 'pallets/flask', label: 'Flask' },
-  { name: 'rajtharun08/RepoRoast', label: 'RepoRoast' }
 ];
 
 export default function Home({ onStartInterview, isLoading }) {
@@ -123,16 +114,6 @@ export default function Home({ onStartInterview, isLoading }) {
     }
   };
 
-  const handleQuickChipSelect = (repoFullName) => {
-    const parts = repoFullName.split('/');
-    const user = parts[0];
-    setGithubUser(user);
-    const fullUrl = `https://github.com/${repoFullName}`;
-    setSelectedRepoUrl(fullUrl);
-    setDirectUrl(fullUrl);
-    handleFetchUserRepos(user);
-  };
-
   const handleSubmit = (e) => {
     if (e) e.preventDefault();
     const finalRepoUrl = inputMode === 'search' ? selectedRepoUrl : directUrl.trim();
@@ -178,7 +159,7 @@ export default function Home({ onStartInterview, isLoading }) {
                 <button
                   type="button"
                   onClick={() => setInputMode('search')}
-                  className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  className={`px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${
                     inputMode === 'search' 
                       ? 'bg-indigo-600 text-white shadow-sm' 
                       : 'text-slate-400 hover:text-slate-200'
@@ -189,7 +170,7 @@ export default function Home({ onStartInterview, isLoading }) {
                 <button
                   type="button"
                   onClick={() => setInputMode('url')}
-                  className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  className={`px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${
                     inputMode === 'url' 
                       ? 'bg-indigo-600 text-white shadow-sm' 
                       : 'text-slate-400 hover:text-slate-200'
@@ -198,21 +179,6 @@ export default function Home({ onStartInterview, isLoading }) {
                   Direct URL
                 </button>
               </div>
-            </div>
-
-            {/* Quick Suggestions Chips */}
-            <div className="flex flex-wrap items-center gap-2 pt-1">
-              <span className="text-xs text-slate-500 font-medium mr-1">Quick Select:</span>
-              {QUICK_SUGGESTIONS.map((chip) => (
-                <button
-                  key={chip.name}
-                  type="button"
-                  onClick={() => handleQuickChipSelect(chip.name)}
-                  className="bg-[#090d16] hover:bg-slate-800 text-slate-300 hover:text-white text-xs px-3 py-1.5 rounded-lg border border-slate-800 hover:border-slate-700 transition-all cursor-pointer font-mono"
-                >
-                  {chip.label}
-                </button>
-              ))}
             </div>
 
             {inputMode === 'search' ? (
