@@ -56,6 +56,13 @@ const PRESET_LIST = [
 export default function Home({ onStartInterview, isLoading }) {
   // Navigation & Selection Modes: 'search' | 'url'
   const [inputMode, setInputMode] = useState('search');
+  const [isMockMode, setIsMockModeState] = useState(USE_MOCK_DATA);
+
+  const toggleMockMode = () => {
+    const nextVal = !isMockMode;
+    setIsMockModeState(nextVal);
+    setMockMode(nextVal);
+  };
   
   // GitHub Username Search state
   const [githubUser, setGithubUser] = useState('fastapi');
