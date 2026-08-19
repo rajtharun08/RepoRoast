@@ -1,8 +1,46 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, GitBranch, Terminal } from 'lucide-react';
+import { ArrowRight, GitBranch, Terminal, ShieldCheck, Rocket, Lock, HeartHandshake } from 'lucide-react';
+
+const PERSONA_PREVIEWS = [
+  {
+    id: 'faang',
+    name: 'FAANG Gatekeeper',
+    level: 'Level 5 (System Design)',
+    icon: ShieldCheck,
+    question: 'Looking at your route handlers in routes/auth.py, how do you prevent event loop blocking when CPU-bound password hashing handles high concurrent traffic?',
+    response: 'We offload CPU-bound hashing execution to a thread pool executor using FastAPI\'s run_in_threadpool to ensure non-blocking event loop execution.'
+  },
+  {
+    id: 'cto',
+    name: 'Startup CTO',
+    level: 'Level 4 (Pragmatic Design)',
+    icon: Rocket,
+    question: 'You have 3 separate services sharing DB models directly. How do you prevent schema migrations from breaking production deployments during fast iterations?',
+    response: 'We enforce backwards-compatible dual-write migrations and decouple shared database entities into a versioned internal package.'
+  },
+  {
+    id: 'security',
+    name: 'Security Auditor',
+    level: 'Level 7 (Security Audit)',
+    icon: Lock,
+    question: 'In your JWT authentication middleware, how do you defend against algorithm confusion attacks if an attacker attempts an alg: none or HMAC/RSA key swap?',
+    response: 'We explicitly restrict allowed algorithms to [\'RS256\'], enforce strict public key type checks during verification, and reject unsigned payloads.'
+  },
+  {
+    id: 'mentor',
+    name: 'Empathetic Mentor',
+    level: 'Level 2 (Screening)',
+    icon: HeartHandshake,
+    question: 'Your project manifest includes async database drivers. What happens under the hood when an async connection pool reaches its maximum capacity limit?',
+    response: 'Subsequent queries wait in an async queue until a connection is released, or raise a connection pool timeout exception if pool_timeout is exceeded.'
+  }
+];
 
 export default function LandingPage() {
+  const [activePersonaId, setActivePersonaId] = useState('faang');
+  const activePreview = PERSONA_PREVIEWS.find((p) => p.id === activePersonaId) || PERSONA_PREVIEWS[0];
+
   return (
     <div className="min-h-screen bg-[#09090b] text-zinc-100 font-sans selection:bg-zinc-800 selection:text-white">
       
@@ -42,35 +80,62 @@ export default function LandingPage() {
           </a>
         </div>
 
-        {/* Code Preview Terminal Card */}
+        {/* Interactive Code Preview Terminal Card */}
         <div className="pt-6">
-          <div className="bg-zinc-900/90 border border-zinc-800 rounded-2xl p-6 md:p-8 shadow-xl text-left max-w-3xl mx-auto space-y-4">
-            <div className="flex items-center justify-between border-b border-zinc-800/80 pb-4">
+          <div className="bg-zinc-900/90 border border-zinc-800 rounded-2xl p-6 md:p-8 shadow-xl text-left max-w-3xl mx-auto space-y-6">
+            
+            {/* Persona Selector Tabs */}
+            <div className="flex flex-wrap items-center gap-2 border-b border-zinc-800 pb-4">
+              <span className="text-xs font-mono text-zinc-400 mr-2">Preview Interviewer:</span>
+              {PERSONA_PREVIEWS.map((p) => {
+                const Icon = p.icon;
+                const isActive = activePersonaId === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => setActivePersonaId(p.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold font-mono transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-zinc-100 text-zinc-900 shadow-sm'
+                        : 'bg-zinc-950 text-zinc-400 border border-zinc-800 hover:text-zinc-200'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span>{p.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Terminal Window Header */}
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-zinc-700" />
                 <div className="w-3 h-3 rounded-full bg-zinc-700" />
                 <div className="w-3 h-3 rounded-full bg-zinc-700" />
-                <span className="text-sm font-mono text-zinc-400 ml-2">fastapi/fastapi • Level 5 (System Design)</span>
+                <span className="text-sm font-mono text-zinc-400 ml-2">fastapi/fastapi • {activePreview.level}</span>
               </div>
-              <span className="text-xs font-mono text-zinc-300 bg-zinc-800 px-3 py-1 rounded-md border border-zinc-700">
-                FAANG Gatekeeper
+              <span className="text-xs font-mono text-zinc-200 bg-zinc-800 px-3 py-1 rounded-md border border-zinc-700 font-bold">
+                {activePreview.name}
               </span>
             </div>
 
+            {/* Q&A Exchange Box */}
             <div className="space-y-4 font-mono text-xs md:text-sm leading-relaxed text-zinc-300">
               <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800/80">
                 <div className="text-zinc-400 font-bold mb-1.5 flex items-center gap-2">
                   <Terminal className="w-4 h-4 text-zinc-400" />
-                  <span>Interviewer (Question 3):</span>
+                  <span>Interviewer ({activePreview.name}):</span>
                 </div>
-                "Looking at your route handlers in <code>routes/auth.py</code>, how do you prevent event loop blocking when CPU-bound password hashing handles concurrent traffic?"
+                "{activePreview.question}"
               </div>
 
               <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800/80 text-zinc-300">
                 <div className="text-blue-400 font-bold mb-1.5">Candidate Response:</div>
-                "We offload CPU-bound hashing execution to a thread pool executor using FastAPI's <code>run_in_threadpool</code> to ensure event loop non-blocking behavior."
+                "{activePreview.response}"
               </div>
             </div>
+
           </div>
         </div>
       </section>
