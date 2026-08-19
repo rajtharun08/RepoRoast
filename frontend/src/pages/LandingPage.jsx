@@ -4,14 +4,6 @@ import { ArrowRight, GitBranch, Terminal, ShieldCheck, Rocket, Lock, HeartHandsh
 
 const PERSONA_PREVIEWS = [
   {
-    id: 'batman',
-    name: 'Batman (Gotham Auditor)',
-    level: 'Level 5 (Vigilante Audit)',
-    icon: Shield,
-    question: 'I watched Gotham\'s infrastructure crumble because of unvalidated edge cases. Looking at your route handlers in routes/auth.py, how do you ensure zero single-point-of-failure when your primary database cluster goes offline in the dark?',
-    response: 'We implement automatic multi-region failover with read-only replicas and circuit breakers to guarantee zero service interruption during infrastructure outages.'
-  },
-  {
     id: 'faang',
     name: 'FAANG Gatekeeper',
     level: 'Level 5 (System Design)',
@@ -34,11 +26,27 @@ const PERSONA_PREVIEWS = [
     icon: Lock,
     question: 'In your JWT authentication middleware, how do you defend against algorithm confusion attacks if an attacker attempts an alg: none or HMAC/RSA key swap?',
     response: 'We explicitly restrict allowed algorithms to [\'RS256\'], enforce strict public key type checks during verification, and reject unsigned payloads.'
+  },
+  {
+    id: 'mentor',
+    name: 'Empathetic Mentor',
+    level: 'Level 2 (Screening)',
+    icon: HeartHandshake,
+    question: 'Your project manifest includes async database drivers. What happens under the hood when an async connection pool reaches its maximum capacity limit?',
+    response: 'Subsequent queries wait in an async queue until a connection is released, or raise a connection pool timeout exception if pool_timeout is exceeded.'
+  },
+  {
+    id: 'batman',
+    name: 'Batman (Gotham Auditor)',
+    level: 'Level 5 (Vigilante Audit)',
+    icon: Shield,
+    question: 'I watched Gotham\'s infrastructure crumble because of unvalidated edge cases. Looking at your route handlers in routes/auth.py, how do you ensure zero single-point-of-failure when your primary database cluster goes offline in the dark?',
+    response: 'We implement automatic multi-region failover with read-only replicas and circuit breakers to guarantee zero service interruption during infrastructure outages.'
   }
 ];
 
 export default function LandingPage() {
-  const [activePersonaId, setActivePersonaId] = useState('batman');
+  const [activePersonaId, setActivePersonaId] = useState('faang');
   const activePreview = PERSONA_PREVIEWS.find((p) => p.id === activePersonaId) || PERSONA_PREVIEWS[0];
 
   return (
@@ -80,7 +88,7 @@ export default function LandingPage() {
           </a>
         </div>
 
-        {/* Interactive Code Preview Terminal Card featuring Batman */}
+        {/* Interactive Code Preview Terminal Card */}
         <div className="pt-6">
           <div className="bg-zinc-900/90 border border-zinc-800 rounded-2xl p-6 md:p-8 shadow-xl text-left max-w-3xl mx-auto space-y-6">
             
@@ -116,7 +124,7 @@ export default function LandingPage() {
                 <span className="text-sm font-mono text-zinc-400 ml-2">fastapi/fastapi • {activePreview.level}</span>
               </div>
               <span className="text-xs font-mono text-zinc-100 bg-zinc-800 px-3 py-1 rounded-md border border-zinc-700 font-bold">
-                🦇 {activePreview.name}
+                {activePreview.id === 'batman' ? '🦇 ' : ''}{activePreview.name}
               </span>
             </div>
 
@@ -158,7 +166,7 @@ export default function LandingPage() {
               02
             </div>
             <h4 className="font-bold text-base text-white pt-1">Choose Level</h4>
-            <p className="text-xs md:text-sm text-zinc-400 leading-relaxed">Select difficulty (Level 1–10) and set interviewer persona (e.g. Batman).</p>
+            <p className="text-xs md:text-sm text-zinc-400 leading-relaxed">Select difficulty (Level 1–10) and set interviewer persona.</p>
           </div>
 
           <div className="bg-zinc-900/50 border border-zinc-800/80 rounded-2xl p-6 space-y-3 text-left">

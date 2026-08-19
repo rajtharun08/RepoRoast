@@ -20,13 +20,6 @@ import { USE_MOCK_DATA, setMockMode } from '../services/api';
 
 const PRESET_LIST = [
   { 
-    key: 'Batman (Gotham Auditor)', 
-    title: 'Batman (Gotham Auditor)',
-    badge: 'Paranoid & Vigilante',
-    desc: 'Audits infrastructure resiliency, single points of failure, and dark edge cases.', 
-    icon: Shield
-  },
-  { 
     key: 'FAANG Gatekeeper', 
     title: 'FAANG Gatekeeper',
     badge: 'Strict & Analytical',
@@ -55,6 +48,13 @@ const PRESET_LIST = [
     icon: HeartHandshake
   },
   { 
+    key: 'Batman (Gotham Auditor)', 
+    title: 'Batman (Gotham Auditor)',
+    badge: 'Vigilante Resilience',
+    desc: 'Audits infrastructure resiliency, single points of failure, and dark edge cases.', 
+    icon: Shield
+  },
+  { 
     key: 'Custom Persona', 
     title: 'Custom Persona',
     badge: 'User Defined',
@@ -75,7 +75,7 @@ export default function Home({ onStartInterview, isLoading }) {
 
   // Config state
   const [level, setLevel] = useState(1);
-  const [persona, setPersona] = useState('Batman (Gotham Auditor)');
+  const [persona, setPersona] = useState('FAANG Gatekeeper');
   const [customPersonaPrompt, setCustomPersonaPrompt] = useState('');
 
   const SAMPLE_REPOS = [
@@ -185,7 +185,7 @@ export default function Home({ onStartInterview, isLoading }) {
               Interviewer Persona
             </span>
             <div className="font-bold text-base text-white">
-              🦇 {currentPreset.title}
+              {currentPreset.key.includes('Batman') ? '🦇 ' : ''}{currentPreset.title}
             </div>
             <span className="text-xs text-zinc-400 font-mono block">
               {currentPreset.badge}
