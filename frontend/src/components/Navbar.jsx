@@ -1,8 +1,8 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Terminal, Zap } from 'lucide-react';
+import { Terminal } from 'lucide-react';
 
-export default function Navbar({ isMockMode, onToggleMockMode }) {
+export default function Navbar() {
   const location = useLocation();
 
   const navItems = [
@@ -17,7 +17,7 @@ export default function Navbar({ isMockMode, onToggleMockMode }) {
         <div className="bg-zinc-800 group-hover:bg-zinc-700 text-zinc-100 p-1.5 rounded-lg border border-zinc-700 transition-colors">
           <Terminal className="w-4 h-4 text-zinc-200" />
         </div>
-        <span className="font-bold text-sm tracking-tight text-zinc-100 group-hover:text-white transition-colors">
+        <span className="font-bold text-base tracking-tight text-zinc-100 group-hover:text-white transition-colors">
           RepoRoast
         </span>
       </Link>
@@ -30,7 +30,7 @@ export default function Navbar({ isMockMode, onToggleMockMode }) {
             <Link
               key={path}
               to={path}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              className={`px-4 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition-all cursor-pointer ${
                 isActive
                   ? 'bg-zinc-800 text-white shadow-sm'
                   : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40'
@@ -41,21 +41,6 @@ export default function Navbar({ isMockMode, onToggleMockMode }) {
           );
         })}
       </div>
-
-      {/* Mock Mode Toggle Badge */}
-      <button
-        type="button"
-        onClick={onToggleMockMode}
-        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer border ${
-          isMockMode 
-            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-            : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-zinc-200'
-        }`}
-        title="Toggle between offline Mock Mode and live Gemini API Mode"
-      >
-        <Zap className={`w-3.5 h-3.5 ${isMockMode ? 'text-emerald-400 fill-emerald-400' : 'text-zinc-500'}`} />
-        <span className="hidden sm:inline">{isMockMode ? 'Offline Mock Mode' : 'Live Gemini API'}</span>
-      </button>
     </nav>
   );
 }

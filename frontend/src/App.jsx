@@ -5,7 +5,7 @@ import LandingPage from './pages/LandingPage';
 import Home from './pages/Home';
 import Interview from './pages/Interview';
 import ScorecardPage from './pages/ScorecardPage';
-import { ingestRepo, startInterviewSession, USE_MOCK_DATA, setMockMode } from './services/api';
+import { ingestRepo, startInterviewSession } from './services/api';
 import { AlertCircle, X } from 'lucide-react';
 
 function AppContent() {
@@ -15,13 +15,6 @@ function AppContent() {
   const [contextData, setContextData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [isMockMode, setIsMockModeState] = useState(USE_MOCK_DATA);
-
-  const toggleMockMode = () => {
-    const nextVal = !isMockMode;
-    setIsMockModeState(nextVal);
-    setMockMode(nextVal);
-  };
 
   const handleStartInterview = async ({ repoUrl, level, persona, customPersona }) => {
     setIsLoading(true);
@@ -57,9 +50,7 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-[#09090b] font-sans text-zinc-100 flex flex-col selection:bg-zinc-800 selection:text-white">
       {/* Show Navbar on non-interview pages */}
-      {!isInterviewRoute && (
-        <Navbar isMockMode={isMockMode} onToggleMockMode={toggleMockMode} />
-      )}
+      {!isInterviewRoute && <Navbar />}
 
       {/* Global Error Banner */}
       {error && (
