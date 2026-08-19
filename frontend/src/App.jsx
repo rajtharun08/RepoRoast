@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import LandingPage from './pages/LandingPage';
 import Home from './pages/Home';
@@ -9,6 +9,7 @@ import { ingestRepo, startInterviewSession, USE_MOCK_DATA, setMockMode } from '.
 
 function AppContent() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [sessionData, setSessionData] = useState(null);
   const [contextData, setContextData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -50,12 +51,17 @@ function AppContent() {
     navigate('/setup');
   };
 
+  const isInterviewRoute = location.pathname.startsWith('/interview');
+
   return (
-    <div className="min-h-screen bg-[#080c14] font-sans text-slate-100 flex flex-col">
-      <Navbar isMockMode={isMockMode} onToggleMockMode={toggleMockMode} />
+    <div className="min-h-screen bg-[#0b0f19] font-sans text-slate-100 flex flex-col selection:bg-indigo-500/30 selection:text-indigo-200">
+      {/* Show Navbar on non-interview pages */}
+      {!isInterviewRoute && (
+        <Navbar isMockMode={isMockMode} onToggleMockMode={toggleMockMode} />
+      )}
 
       {error && (
-        <div className="bg-rose-500/20 border-b border-rose-500/50 text-rose-200 text-xs p-3 text-center sticky top-[57px] z-50 font-mono">
+        <div className="bg-rose-500/20 border-b border-rose-500/50 text-rose-200 text-xs p-3 text-center sticky top-0 z-50 font-mono">
           ⚠️ {error}
         </div>
       )}
