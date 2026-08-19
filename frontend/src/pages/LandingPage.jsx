@@ -3,12 +3,8 @@ import { Link } from 'react-router-dom';
 import { 
   ArrowRight, 
   Sparkles, 
-  Cpu, 
-  Mic, 
-  ShieldCheck, 
   GitBranch, 
   Terminal, 
-  Zap,
   Code2
 } from 'lucide-react';
 
@@ -90,51 +86,6 @@ export default function LandingPage() {
                 "We offload CPU-bound hashing execution to a thread pool executor using FastAPI's <code>run_in_threadpool</code> to ensure event loop non-blocking behavior."
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Feature Grid */}
-      <section className="py-16 px-4 md:px-8 max-w-5xl mx-auto border-t border-slate-800/60">
-        <div className="text-center space-y-3 mb-12">
-          <h2 className="text-3xl font-black text-white">Engineered for Technical Depth</h2>
-          <p className="text-slate-400 text-sm max-w-xl mx-auto">
-            Combines realistic escalation pipelines with token-efficient prompt scoping.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Feature 1 */}
-          <div className="bg-[#131b2e] border border-slate-800 rounded-3xl p-6 space-y-4 hover:border-slate-700 transition-all">
-            <div className="p-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 w-fit">
-              <Cpu className="w-6 h-6" />
-            </div>
-            <h3 className="text-base font-extrabold text-white">Context Window Scoping</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Trims repo context based on level: README & manifests for Screening; routing entrypoints for System Design; complete filtered code for Deep Review.
-            </p>
-          </div>
-
-          {/* Feature 2 */}
-          <div className="bg-[#131b2e] border border-slate-800 rounded-3xl p-6 space-y-4 hover:border-slate-700 transition-all">
-            <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 w-fit">
-              <Mic className="w-6 h-6" />
-            </div>
-            <h3 className="text-base font-extrabold text-white">Native Voice Recognition</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Speak your technical answers naturally using native Web Speech API audio recording with real-time text transcription directly inside the answer box.
-            </p>
-          </div>
-
-          {/* Feature 3 */}
-          <div className="bg-[#131b2e] border border-slate-800 rounded-3xl p-6 space-y-4 hover:border-slate-700 transition-all">
-            <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 w-fit">
-              <ShieldCheck className="w-6 h-6" />
-            </div>
-            <h3 className="text-base font-extrabold text-white">Custom Interviewer Personas</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Choose preset personas (FAANG Gatekeeper, Startup CTO, Security Auditor, Empathetic Mentor) or define your custom persona system instructions.
-            </p>
           </div>
         </div>
       </section>
