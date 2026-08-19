@@ -63,7 +63,8 @@ async def stream_interview_question(request: Request, session_id: str, answer: O
     try:
         return StreamingResponse(
             AIService.generate_question_stream(session_id=session_id, candidate_answer=answer),
-            media_type="text/event-stream"
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"}
         )
     except KeyError:
         raise HTTPException(status_code=404, detail="Interview session not found")

@@ -62,6 +62,11 @@ export function subscribeToInterviewSSE(sessionId, answer = null, onChunk, onErr
   const eventSource = new EventSource(url);
   
   eventSource.onmessage = (event) => {
+    if (event.data === '[DONE]') {
+      eventSource.close();
+      if (onComplete) onComplete();
+      return;
+    }
     try {
       const data = JSON.parse(event.data);
       onChunk(data);
@@ -75,6 +80,11 @@ export function subscribeToInterviewSSE(sessionId, answer = null, onChunk, onErr
   };
 
   eventSource.onerror = (err) => {
+    if (eventSource.readyState === EventSource.CLOSED || eventSource.readyState === 2) {
+      eventSource.close();
+      if (onComplete) onComplete();
+      return;
+    }
     eventSource.close();
     if (onError) onError(err);
   };
