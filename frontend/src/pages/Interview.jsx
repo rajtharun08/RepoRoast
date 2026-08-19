@@ -110,7 +110,7 @@ export default function Interview({ sessionData, contextData, onRestart }) {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-[#0b0f19] overflow-hidden">
+    <div className="h-screen flex flex-col bg-[#0d1117] overflow-hidden">
       <Header
         questionCount={questionCount}
         level={sessionData.level}
