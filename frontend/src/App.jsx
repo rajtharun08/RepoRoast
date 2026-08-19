@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import Interview from './pages/Interview';
 import ScorecardPage from './pages/ScorecardPage';
 import { ingestRepo, startInterviewSession, USE_MOCK_DATA, setMockMode } from './services/api';
+import { AlertCircle, X } from 'lucide-react';
 
 function AppContent() {
   const navigate = useNavigate();
@@ -37,8 +38,8 @@ function AppContent() {
       // Step 3: Navigate to active interview route
       navigate('/interview');
     } catch (err) {
-      console.error(err);
-      setError(err.message || 'Failed to start interview session');
+      console.error('Interview Start Error:', err);
+      setError(err.message || 'Failed to connect to backend server or fetch GitHub repository.');
     } finally {
       setIsLoading(false);
     }
@@ -54,15 +55,26 @@ function AppContent() {
   const isInterviewRoute = location.pathname.startsWith('/interview');
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] font-sans text-slate-100 flex flex-col selection:bg-indigo-500/30 selection:text-indigo-200">
+    <div className="min-h-screen bg-[#09090b] font-sans text-zinc-100 flex flex-col selection:bg-zinc-800 selection:text-white">
       {/* Show Navbar on non-interview pages */}
       {!isInterviewRoute && (
         <Navbar isMockMode={isMockMode} onToggleMockMode={toggleMockMode} />
       )}
 
+      {/* Global Error Banner */}
       {error && (
-        <div className="bg-rose-500/20 border-b border-rose-500/50 text-rose-200 text-xs p-3 text-center sticky top-0 z-50 font-mono">
-          ⚠️ {error}
+        <div className="bg-rose-500/10 border-b border-rose-500/30 text-rose-300 text-xs md:text-sm px-6 py-3 flex items-center justify-between sticky top-0 z-50 font-mono shadow-md">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+            <span>{error}</span>
+          </div>
+          <button
+            onClick={() => setError(null)}
+            className="p-1 text-rose-400 hover:text-white rounded-md transition-colors cursor-pointer"
+            title="Dismiss error"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 

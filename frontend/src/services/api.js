@@ -1,7 +1,7 @@
 const API_BASE = '/api';
 
-// Toggle MOCK_MODE to true for 100% offline testing with 0 Gemini API Token usage!
-export let USE_MOCK_DATA = true;
+// Live Mode is Enabled by Default (100% Real FastAPI & GitHub API Integration)
+export let USE_MOCK_DATA = false;
 
 export function setMockMode(enabled) {
   USE_MOCK_DATA = enabled;
@@ -11,7 +11,7 @@ let mockQuestionCount = 1;
 
 export async function ingestRepo(repoUrl, level) {
   if (USE_MOCK_DATA) {
-    await new Promise((r) => setTimeout(r, 400)); // Simulate network delay
+    await new Promise((r) => setTimeout(r, 400));
     const urlParts = repoUrl.replace('https://github.com/', '').split('/');
     const owner = urlParts[0] || 'fastapi';
     const repo = urlParts[1] || 'fastapi';
@@ -43,7 +43,7 @@ export async function ingestRepo(repoUrl, level) {
   });
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.detail || 'Failed to ingest repository');
+    throw new Error(errorData.detail || 'Failed to ingest repository from GitHub.');
   }
   return res.json();
 }
@@ -74,7 +74,7 @@ export async function startInterviewSession(repoUrl, persona, customPersona, lev
   });
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.detail || 'Failed to start interview session');
+    throw new Error(errorData.detail || 'Failed to start interview session on backend.');
   }
   return res.json();
 }
@@ -113,7 +113,7 @@ export async function fetchScorecard(sessionId) {
         problem_solving: 89,
         code_quality: 93
       },
-      summary: 'Completed 5-question mock interview in offline test mode.',
+      summary: 'Completed 5-question mock interview.',
       strengths: [
         'Excellent articulation of asynchronous event loop architecture.',
         'Clear understanding of dependency injection and middleware pipelines.',
@@ -132,7 +132,7 @@ export async function fetchScorecard(sessionId) {
   const res = await fetch(`${API_BASE}/scorecard/${sessionId}`);
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.detail || 'Failed to fetch scorecard');
+    throw new Error(errorData.detail || 'Failed to fetch scorecard from database');
   }
   return res.json();
 }

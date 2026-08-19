@@ -14,9 +14,9 @@ import {
   Sliders,
   Layers,
   Code2,
-  Shield
+  Shield,
+  AlertCircle
 } from 'lucide-react';
-import { USE_MOCK_DATA, setMockMode } from '../services/api';
 
 const PRESET_LIST = [
   { 
@@ -70,6 +70,7 @@ export default function Home({ onStartInterview, isLoading }) {
   const [githubUser, setGithubUser] = useState('fastapi');
   const [userRepos, setUserRepos] = useState([]);
   const [isFetchingRepos, setIsFetchingRepos] = useState(false);
+  const [fetchError, setFetchError] = useState(null);
   const [selectedRepoUrl, setSelectedRepoUrl] = useState('https://github.com/fastapi/fastapi');
   const [directUrl, setDirectUrl] = useState('https://github.com/fastapi/fastapi');
 
@@ -78,17 +79,10 @@ export default function Home({ onStartInterview, isLoading }) {
   const [persona, setPersona] = useState('FAANG Gatekeeper');
   const [customPersonaPrompt, setCustomPersonaPrompt] = useState('');
 
-  const SAMPLE_REPOS = [
-    { id: 1, name: 'fastapi', html_url: 'https://github.com/fastapi/fastapi', description: 'FastAPI framework, high performance, easy to learn', stargazers_count: 68500, language: 'Python' },
-    { id: 2, name: 'react', html_url: 'https://github.com/facebook/react', description: 'The library for web and native user interfaces', stargazers_count: 220000, language: 'JavaScript' },
-    { id: 3, name: 'express', html_url: 'https://github.com/expressjs/express', description: 'Fast, unopinionated web framework for Node', stargazers_count: 63000, language: 'JavaScript' },
-    { id: 4, name: 'flask', html_url: 'https://github.com/pallets/flask', description: 'Python micro framework for web applications', stargazers_count: 65000, language: 'Python' },
-    { id: 5, name: 'RepoRoast', html_url: 'https://github.com/rajtharun08/RepoRoast', description: 'Realistic technical interview escalation platform', stargazers_count: 15, language: 'Python' }
-  ];
-
   const handleFetchUserRepos = async (userToFetch = githubUser) => {
     if (!userToFetch.trim()) return;
     setIsFetchingRepos(true);
+    setFetchError(null);
     try {
       let res = await fetch(`/api/repo/user/${userToFetch.trim()}`);
       if (!res.ok) {
@@ -96,9 +90,8 @@ export default function Home({ onStartInterview, isLoading }) {
       }
       
       if (!res.ok) {
-        setUserRepos(SAMPLE_REPOS);
-        setSelectedRepoUrl(SAMPLE_REPOS[0].html_url);
-        return;
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.detail || `GitHub user or organization '${userToFetch.trim()}' was not found.`);
       }
 
       const data = await res.json();
@@ -106,12 +99,13 @@ export default function Home({ onStartInterview, isLoading }) {
         setUserRepos(data);
         setSelectedRepoUrl(data[0].html_url);
       } else {
-        setUserRepos(SAMPLE_REPOS);
-        setSelectedRepoUrl(SAMPLE_REPOS[0].html_url);
+        setUserRepos([]);
+        setFetchError(`No public repositories found for GitHub user '${userToFetch.trim()}'.`);
       }
     } catch (err) {
-      setUserRepos(SAMPLE_REPOS);
-      setSelectedRepoUrl(SAMPLE_REPOS[0].html_url);
+      console.error('Fetch Repos Error:', err);
+      setUserRepos([]);
+      setFetchError(err.message || `Could not fetch repositories for '${userToFetch.trim()}'. Check the username or use Direct URL.`);
     } finally {
       setIsFetchingRepos(false);
     }
@@ -123,7 +117,7 @@ export default function Home({ onStartInterview, isLoading }) {
   const handleSubmit = (e) => {
     if (e) e.preventDefault();
     if (!activeRepoUrl) {
-      alert('Please select or enter a GitHub repository');
+      alert('Please select or enter a valid GitHub repository URL.');
       return;
     }
     onStartInterview({
@@ -284,6 +278,13 @@ export default function Home({ onStartInterview, isLoading }) {
                   <span>Fetch Repos</span>
                 </button>
               </form>
+
+              {fetchError && (
+                <div className="bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs p-3.5 rounded-xl font-mono flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                  <span>{fetchError}</span>
+                </div>
+              )}
 
               {userRepos.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-h-72 overflow-y-auto pr-1">
