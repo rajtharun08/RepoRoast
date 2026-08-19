@@ -1,0 +1,135 @@
+import React, { useState, useEffect } from 'react';
+import Header from '../components/Header';
+import ChatArena from '../components/ChatArena';
+import CodeContextModal from '../components/CodeContextModal';
+import ScorecardModal from '../components/ScorecardModal';
+import { subscribeToInterviewSSE, submitAnswer, fetchScorecard, triggerHintAPI, triggerPanicAPI } from '../services/api';
+
+export default function Interview({ sessionData, contextData, onRestart }) {
+  const [messages, setMessages] = useState([]);
+  const [streamingText, setStreamingText] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [questionCount, setQuestionCount] = useState(sessionData.question_count || 1);
+  const [isContextOpen, setIsContextOpen] = useState(false);
+  const [scorecard, setScorecard] = useState(null);
+  const [isScorecardOpen, setIsScorecardOpen] = useState(false);
+
+  // Subscribe to SSE stream when starting or sending answer
+  const startStream = (answerText = null) => {
+    setIsStreaming(true);
+    setStreamingText('');
+
+    subscribeToInterviewSSE(
+      sessionData.session_id,
+      answerText,
+      (data) => {
+        if (data.text) {
+          setStreamingText((prev) => prev + data.text);
+        }
+        if (data.question_count) {
+          setQuestionCount(data.question_count);
+        }
+        if (data.status === 'completed') {
+          handleInterviewComplete();
+        }
+      },
+      (err) => {
+        console.error('SSE Stream Error', err);
+        setIsStreaming(false);
+      },
+      () => {
+        // Stream completed chunk loop
+        setIsStreaming(false);
+        setStreamingText((finalText) => {
+          if (finalText) {
+            setMessages((prev) => [
+              ...prev,
+              { role: 'interviewer', content: finalText, question: questionCount }
+            ]);
+          }
+          return '';
+        });
+      }
+    );
+  };
+
+  useEffect(() => {
+    // Initial opening question stream trigger
+    startStream();
+  }, []);
+
+  const handleSendAnswer = async (answer) => {
+    setMessages((prev) => [
+      ...prev,
+      { role: 'candidate', content: answer, question: questionCount }
+    ]);
+    await submitAnswer(sessionData.session_id, answer);
+    startStream(answer);
+  };
+
+  const handleTriggerHint = async () => {
+    setMessages((prev) => [
+      ...prev,
+      { role: 'candidate', content: '[Requested Hint]', question: questionCount }
+    ]);
+    setIsStreaming(true);
+    setStreamingText('');
+    await triggerHintAPI(sessionData.session_id);
+    startStream();
+  };
+
+  const handleTriggerPanic = async () => {
+    setMessages((prev) => [
+      ...prev,
+      { role: 'candidate', content: '[Triggered Panic Button - Reveal Answer]', question: questionCount }
+    ]);
+    setIsStreaming(true);
+    setStreamingText('');
+    await triggerPanicAPI(sessionData.session_id);
+    startStream();
+  };
+
+  const handleInterviewComplete = async () => {
+    try {
+      const scorecardData = await fetchScorecard(sessionData.session_id);
+      setScorecard(scorecardData);
+      setIsScorecardOpen(true);
+    } catch (e) {
+      console.error('Failed to load scorecard', e);
+    }
+  };
+
+  return (
+    <div className="h-screen flex flex-col bg-roast-dark overflow-hidden">
+      <Header
+        questionCount={questionCount}
+        level={sessionData.level}
+        persona={sessionData.persona}
+        repoName={sessionData.repo_url}
+        onInspectContext={() => setIsContextOpen(true)}
+        onTriggerHint={handleTriggerHint}
+        onTriggerPanic={handleTriggerPanic}
+        isStreaming={isStreaming}
+      />
+
+      <ChatArena
+        messages={messages}
+        streamingText={streamingText}
+        isStreaming={isStreaming}
+        onSendAnswer={handleSendAnswer}
+      />
+
+      <CodeContextModal
+        isOpen={isContextOpen}
+        onClose={() => setIsContextOpen(false)}
+        contextData={contextData}
+      />
+
+      <ScorecardModal
+        isOpen={isScorecardOpen}
+        scorecard={scorecard}
+        onRestart={onRestart}
+      />
+    </div>
+  );
+}
