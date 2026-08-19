@@ -76,34 +76,52 @@ class AIService:
         session["history"].append({"role": "user", "content": user_msg, "question": question_count})
 
         # Try live Gemini stream if GEMINI_API_KEY is configured
-        if settings.GEMINI_API_KEY:
+        if settings.GEMINI_API_KEY and settings.GEMINI_API_KEY.strip() and settings.GEMINI_API_KEY != "your_gemini_api_key_here":
             try:
                 from langchain_google_genai import ChatGoogleGenerativeAI
-                llm = ChatGoogleGenerativeAI(model=settings.GEMINI_MODEL, google_api_key=settings.GEMINI_API_KEY, streaming=True)
+                llm = ChatGoogleGenerativeAI(
+                    model=settings.GEMINI_MODEL, 
+                    google_api_key=settings.GEMINI_API_KEY, 
+                    streaming=True,
+                    request_timeout=5.0
+                )
                 full_response = ""
-                async for chunk in llm.astream(prompt_prefix + user_msg):
-                    content = chunk.content
-                    if content:
-                        full_response += content
-                        payload = json.dumps({"text": content, "question_count": question_count, "status": session["status"]})
+                
+                # Stream first chunk with a 4.0s timeout
+                stream_iter = llm.astream(prompt_prefix + user_msg).__aiter__()
+                try:
+                    first_chunk = await asyncio.wait_for(stream_iter.__anext__(), timeout=4.0)
+                    if first_chunk and first_chunk.content:
+                        full_response += first_chunk.content
+                        payload = json.dumps({"text": first_chunk.content, "question_count": question_count, "status": session["status"]})
                         yield f"data: {payload}\n\n"
                         await asyncio.sleep(0.01)
-                
-                session["history"].append({"role": "interviewer", "content": full_response, "question": question_count})
-                yield "data: [DONE]\n\n"
-                return
-            except Exception as e:
-                # Fallback to simulated response stream if API call encounters an issue
-                pass
+                    
+                    async for chunk in stream_iter:
+                        content = chunk.content
+                        if content:
+                            full_response += content
+                            payload = json.dumps({"text": content, "question_count": question_count, "status": session["status"]})
+                            yield f"data: {payload}\n\n"
+                            await asyncio.sleep(0.01)
 
-        # Simulated fallback streamer for local development / testing
+                    if full_response.strip():
+                        session["history"].append({"role": "interviewer", "content": full_response, "question": question_count})
+                        yield "data: [DONE]\n\n"
+                        return
+                except (asyncio.TimeoutError, StopAsyncIteration, Exception) as stream_err:
+                    print(f"Gemini API stream timeout or error, switching to fast response: {stream_err}")
+            except Exception as e:
+                print(f"Gemini initialization error: {e}")
+
+        # Fast fallback response generator so candidate NEVER waits
         simulated_text = cls._generate_mock_response(session, candidate_answer, is_hint, is_panic, question_count, level)
         full_response = ""
         for word in simulated_text.split(" "):
             full_response += word + " "
             payload = json.dumps({"text": word + " ", "question_count": question_count, "status": session["status"]})
             yield f"data: {payload}\n\n"
-            await asyncio.sleep(0.04)
+            await asyncio.sleep(0.02)
 
         session["history"].append({"role": "interviewer", "content": full_response, "question": question_count})
         yield "data: [DONE]\n\n"
@@ -111,6 +129,9 @@ class AIService:
     @classmethod
     def _generate_mock_response(cls, session: Dict[str, Any], candidate_answer: str, is_hint: bool, is_panic: bool, q_num: int, level: int) -> str:
         repo_name = f"{session['repo_context'].get('owner')}/{session['repo_context'].get('repo')}"
+        persona = session.get('persona', 'Interviewer')
+        custom = session.get('custom_persona', '')
+        
         if is_panic:
             return (
                 f"**[Reveal Answer]** For Question #{q_num - 1 if q_num > 1 else 1}, the ideal approach involves optimizing the primary request handler "
@@ -124,14 +145,20 @@ class AIService:
                 f"Consider checking the middleware definitions and context schemas in `{repo_name}`. Give it another shot!"
             )
         elif q_num == 1:
+            if "Batman" in persona or "batman" in custom.lower():
+                return (
+                    f"I've been monitoring `{repo_name}` from the shadows.\n\n"
+                    f"**Question 1 (Level {level} - Vigilante Audit)**: Looking at your `README.md` and dependency stack, "
+                    f"what core single-point-of-failure vulnerabilities would collapse this system if your primary database goes dark?"
+                )
             return (
-                f"Welcome to your technical screening for `{repo_name}`! I'm your interviewer today.\n\n"
+                f"Welcome to your technical interview for `{repo_name}`! I'm evaluating your architectural choices today.\n\n"
                 f"**Question 1 (Level {level} - Screening)**: Looking at your `README.md` and dependency stack, "
-                f"what core architectural requirements drove the selection of these specific frameworks and libraries?"
+                f"what core technical requirements drove the selection of these specific frameworks and libraries?"
             )
         else:
             return (
-                f"Solid point on Question #{q_num - 1}. Let's dive deeper.\n\n"
+                f"Solid reasoning on Question #{q_num - 1}. Let's escalate.\n\n"
                 f"**Question {q_num} (Level {level})**: In `{repo_name}`, how do you handle asynchronous background task "
                 f"cancellation and resource cleanup when a client drops the connection prematurely?"
             )
