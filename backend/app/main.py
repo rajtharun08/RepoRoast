@@ -8,6 +8,7 @@ from app.core.rate_limiter import limiter
 from app.api.repo import router as repo_router
 from app.api.interview import router as interview_router
 from app.api.scorecard import router as scorecard_router
+from app.api.auth import router as auth_router
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -34,6 +35,7 @@ app.add_middleware(
 app.include_router(repo_router, prefix=settings.API_V1_STR)
 app.include_router(interview_router, prefix=settings.API_V1_STR)
 app.include_router(scorecard_router, prefix=settings.API_V1_STR)
+app.include_router(auth_router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 @limiter.limit("30/minute")
