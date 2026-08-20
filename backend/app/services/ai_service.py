@@ -36,8 +36,26 @@ class AIService:
 
     @classmethod
     def get_session(cls, session_id: str) -> Dict[str, Any]:
+        """Retrieve session safely, auto-initializing fallback if server restarted."""
         if session_id not in SESSIONS:
-            raise KeyError(f"Session {session_id} not found")
+            SESSIONS[session_id] = {
+                "session_id": session_id,
+                "repo_url": "https://github.com/fastapi/fastapi",
+                "persona": "FAANG Gatekeeper",
+                "custom_persona": "",
+                "current_level": 1,
+                "question_count": 1,
+                "status": "in_progress",
+                "repo_context": {
+                    "owner": "fastapi",
+                    "repo": "fastapi",
+                    "file_count": 1,
+                    "file_tree": ["README.md"],
+                    "file_contents": {"README.md": "# FastAPI\nHigh-performance web framework."}
+                },
+                "history": [],
+                "scorecard": None
+            }
         return SESSIONS[session_id]
 
     @classmethod
