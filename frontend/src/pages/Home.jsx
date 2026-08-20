@@ -14,7 +14,6 @@ import {
   Sliders,
   Layers,
   Code2,
-  Shield,
   AlertCircle
 } from 'lucide-react';
 
@@ -46,13 +45,6 @@ const PRESET_LIST = [
     badge: 'Constructive Coach',
     desc: 'Asks challenging technical questions while offering guidance when you get stuck.', 
     icon: HeartHandshake
-  },
-  { 
-    key: 'Batman (Gotham Auditor)', 
-    title: 'Batman (Gotham Auditor)',
-    badge: 'Vigilante Resilience',
-    desc: 'Audits infrastructure resiliency, single points of failure, and dark edge cases.', 
-    icon: Shield
   },
   { 
     key: 'Custom Persona', 
@@ -179,7 +171,7 @@ export default function Home({ onStartInterview, isLoading }) {
               Interviewer Persona
             </span>
             <div className="font-bold text-base text-white">
-              {currentPreset.key.includes('Batman') ? '🦇 ' : ''}{currentPreset.title}
+              {currentPreset.title}
             </div>
             <span className="text-xs text-zinc-400 font-mono block">
               {currentPreset.badge}
@@ -422,9 +414,8 @@ export default function Home({ onStartInterview, isLoading }) {
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="font-bold text-sm text-zinc-100 flex items-center gap-2">
-                      {key.includes('Batman') && <span>🦇</span>}
-                      <span>{title}</span>
+                    <div className="font-bold text-sm text-zinc-100">
+                      {title}
                     </div>
                     {isSelected && <Check className="w-4 h-4 text-white shrink-0" />}
                   </div>
