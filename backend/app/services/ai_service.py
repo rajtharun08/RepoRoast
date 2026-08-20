@@ -9,13 +9,11 @@ from app.services.persona_service import PersonaService
 SESSIONS: Dict[str, Dict[str, Any]] = {}
 
 def get_valid_gemini_model_name(configured_model: str) -> str:
-    """Ensure Gemini model name matches official Google REST API model identifiers."""
+    """Ensure Gemini model name matches active Google REST API model identifiers."""
     cleaned = (configured_model or "").strip().lower()
-    if "2.5" in cleaned or "2.0" in cleaned:
-        return "gemini-2.0-flash"
-    elif "pro" in cleaned:
-        return "gemini-1.5-pro"
-    return "gemini-1.5-flash"
+    if "pro" in cleaned:
+        return "gemini-pro-latest"
+    return "gemini-flash-lite-latest"
 
 class AIService:
     @classmethod
