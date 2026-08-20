@@ -18,6 +18,7 @@ export default function Interview({ sessionData, contextData, onRestart }) {
 
   const cleanupStreamRef = useRef(null);
   const isInitialMountedRef = useRef(false);
+  const accumulatedTextRef = useRef('');
 
   const startStream = (answerText = null, mode = 'normal') => {
     if (cleanupStreamRef.current) {
@@ -26,13 +27,15 @@ export default function Interview({ sessionData, contextData, onRestart }) {
 
     setIsStreaming(true);
     setStreamingText('');
+    accumulatedTextRef.current = '';
 
     cleanupStreamRef.current = subscribeToInterviewSSE(
       sessionData.session_id,
       answerText,
       (data) => {
         if (data.text) {
-          setStreamingText((prev) => prev + data.text);
+          accumulatedTextRef.current += data.text;
+          setStreamingText(accumulatedTextRef.current);
         }
         if (data.question_count) {
           setQuestionCount(data.question_count);
@@ -46,16 +49,15 @@ export default function Interview({ sessionData, contextData, onRestart }) {
         setIsStreaming(false);
       },
       () => {
+        const finalContent = accumulatedTextRef.current.trim();
         setIsStreaming(false);
-        setStreamingText((finalText) => {
-          if (finalText.trim()) {
-            setMessages((prev) => [
-              ...prev,
-              { role: 'interviewer', content: finalText.trim(), question: questionCount }
-            ]);
-          }
-          return '';
-        });
+        setStreamingText('');
+        if (finalContent) {
+          setMessages((prev) => [
+            ...prev,
+            { role: 'interviewer', content: finalContent, question: questionCount }
+          ]);
+        }
       },
       mode
     );
