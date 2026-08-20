@@ -177,8 +177,12 @@ export function subscribeToInterviewSSE(sessionId, answer = null, onChunk, onErr
     return () => clearInterval(timer);
   }
 
-  // Live Backend SSE Stream Mode
-  let url = `${API_BASE}/interview/stream/${sessionId}`;
+  // Direct SSE stream connection for local dev to bypass Vite proxy buffering delays
+  const hostname = window.location.hostname;
+  const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
+  const streamBase = isLocal ? `http://${hostname}:8000/api` : API_BASE;
+
+  let url = `${streamBase}/interview/stream/${sessionId}`;
   if (answer) {
     url += `?answer=${encodeURIComponent(answer)}`;
   }
