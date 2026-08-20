@@ -1,11 +1,21 @@
 import asyncio
 import json
+import httpx
 from typing import AsyncGenerator, Dict, Any, List
 from app.core.config import settings
 from app.services.persona_service import PersonaService
 
 # In-memory interview session store (mirrored to DB)
 SESSIONS: Dict[str, Dict[str, Any]] = {}
+
+def get_valid_gemini_model_name(configured_model: str) -> str:
+    """Ensure Gemini model name matches official Google REST API model identifiers."""
+    cleaned = (configured_model or "").strip().lower()
+    if "2.5" in cleaned or "2.0" in cleaned:
+        return "gemini-2.0-flash"
+    elif "pro" in cleaned:
+        return "gemini-1.5-pro"
+    return "gemini-1.5-flash"
 
 class AIService:
     @classmethod
@@ -36,14 +46,13 @@ class AIService:
     async def generate_question_stream(cls, session_id: str, candidate_answer: str = None, is_hint: bool = False, is_panic: bool = False) -> AsyncGenerator[str, None]:
         """
         Generate real-time SSE token stream for Gemini model response.
-        Sends data chunks in SSE format: `data: {"text": "...", "question_count": 1, "status": "in_progress"}\n\n`
+        Uses direct HTTP SSE streaming to Google Gemini REST API for maximum reliability.
         """
         session = cls.get_session(session_id)
         question_count = session["question_count"]
         level = session["current_level"]
         persona_instructions = PersonaService.get_system_prompt(session["persona"], session["custom_persona"])
         
-        # Build prompt context window
         context_str = json.dumps({
             "repo": f"{session['repo_context'].get('owner')}/{session['repo_context'].get('repo')}",
             "file_count": session['repo_context'].get('file_count'),
@@ -51,7 +60,7 @@ class AIService:
             "snippets": session['repo_context'].get('file_contents', {})
         }, indent=2)
 
-        prompt_prefix = f"SYSTEM:\n{persona_instructions}\n\nREPO CONTEXT (Level {level}):\n{context_str}\n\n"
+        prompt_prefix = f"SYSTEM INSTRUCTIONS:\n{persona_instructions}\n\nREPOSITORY CONTEXT (Level {level}):\n{context_str}\n\n"
 
         if is_panic:
             user_msg = f"[CANDIDATE REVEALED ANSWER / PANIC BUTTON] Please explain the optimal answer to Question #{question_count} concisely, and then ask Question #{min(question_count + 1, 5)}."
@@ -62,59 +71,77 @@ class AIService:
             session["question_count"] += 1
             question_count = session["question_count"]
         else:
-            # Initial opening question
-            user_msg = f"Start the interview for Level {level}. Ask Question #1 focusing on the repository's core purpose and stack."
+            user_msg = f"Start the interview for Level {level}. Ask Question #1 focusing on the repository's core purpose, architecture, and technology stack."
 
-        # If question count exceeds 5, conclude session
         if question_count > 5:
             session["status"] = "completed"
             summary_payload = json.dumps({"text": "\n\n🎉 **Interview Completed!** You have completed all 5 technical questions. Generating your final scorecard...", "status": "completed", "question_count": 5})
             yield f"data: {summary_payload}\n\n"
             return
 
-        # Record history
         session["history"].append({"role": "user", "content": user_msg, "question": question_count})
 
-        # Try live Gemini stream if GEMINI_API_KEY is configured
-        if settings.GEMINI_API_KEY and settings.GEMINI_API_KEY.strip() and settings.GEMINI_API_KEY != "your_gemini_api_key_here":
+        api_key = (settings.GEMINI_API_KEY or "").strip()
+        
+        # Direct Gemini REST API Stream execution if key is present
+        if api_key and api_key != "your_gemini_api_key_here":
+            model_name = get_valid_gemini_model_name(settings.GEMINI_MODEL)
+            api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:streamGenerateContent?alt=sse&key={api_key}"
+            
+            payload = {
+                "contents": [
+                    {
+                        "parts": [
+                            {"text": prompt_prefix + user_msg}
+                        ]
+                    }
+                ]
+            }
+
+            full_response = ""
             try:
-                from langchain_google_genai import ChatGoogleGenerativeAI
-                llm = ChatGoogleGenerativeAI(
-                    model=settings.GEMINI_MODEL, 
-                    google_api_key=settings.GEMINI_API_KEY, 
-                    streaming=True,
-                    request_timeout=5.0
-                )
-                full_response = ""
-                
-                # Stream first chunk with a 4.0s timeout
-                stream_iter = llm.astream(prompt_prefix + user_msg).__aiter__()
-                try:
-                    first_chunk = await asyncio.wait_for(stream_iter.__anext__(), timeout=4.0)
-                    if first_chunk and first_chunk.content:
-                        full_response += first_chunk.content
-                        payload = json.dumps({"text": first_chunk.content, "question_count": question_count, "status": session["status"]})
-                        yield f"data: {payload}\n\n"
-                        await asyncio.sleep(0.01)
-                    
-                    async for chunk in stream_iter:
-                        content = chunk.content
-                        if content:
-                            full_response += content
-                            payload = json.dumps({"text": content, "question_count": question_count, "status": session["status"]})
-                            yield f"data: {payload}\n\n"
-                            await asyncio.sleep(0.01)
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    async with client.stream("POST", api_url, json=payload) as response:
+                        if response.status_code != 200:
+                            err_body = await response.aread()
+                            err_text = err_body.decode("utf-8", errors="ignore")
+                            print(f"Gemini API Error (HTTP {response.status_code}): {err_text}")
+                            err_msg = f"\n\n⚠️ **Gemini API Error ({response.status_code})**: Unable to fetch live response from Gemini API. Check your `GEMINI_API_KEY` in `backend/.env`."
+                            payload_err = json.dumps({"text": err_msg, "question_count": question_count, "status": session["status"]})
+                            yield f"data: {payload_err}\n\n"
+                            session["history"].append({"role": "interviewer", "content": err_msg, "question": question_count})
+                            yield "data: [DONE]\n\n"
+                            return
 
-                    if full_response.strip():
-                        session["history"].append({"role": "interviewer", "content": full_response, "question": question_count})
-                        yield "data: [DONE]\n\n"
-                        return
-                except (asyncio.TimeoutError, StopAsyncIteration, Exception) as stream_err:
-                    print(f"Gemini API stream timeout or error, switching to fast response: {stream_err}")
-            except Exception as e:
-                print(f"Gemini initialization error: {e}")
+                        async for line in response.aiter_lines():
+                            if line.startswith("data: "):
+                                json_str = line[6:].strip()
+                                if not json_str:
+                                    continue
+                                try:
+                                    data_obj = json.loads(json_str)
+                                    candidates = data_obj.get("candidates", [])
+                                    if candidates:
+                                        parts = candidates[0].get("content", {}).get("parts", [])
+                                        for p in parts:
+                                            chunk_text = p.get("text", "")
+                                            if chunk_text:
+                                                full_response += chunk_text
+                                                payload_chunk = json.dumps({"text": chunk_text, "question_count": question_count, "status": session["status"]})
+                                                yield f"data: {payload_chunk}\n\n"
+                                                await asyncio.sleep(0.01)
+                                except Exception as parse_err:
+                                    print("Error parsing Gemini SSE chunk:", parse_err)
 
-        # Fast fallback response generator so candidate NEVER waits
+                        if full_response.strip():
+                            session["history"].append({"role": "interviewer", "content": full_response, "question": question_count})
+                            yield "data: [DONE]\n\n"
+                            return
+
+            except Exception as net_err:
+                print("Gemini REST API connection error:", net_err)
+
+        # Fallback question streamer if API Key is not configured
         simulated_text = cls._generate_mock_response(session, candidate_answer, is_hint, is_panic, question_count, level)
         full_response = ""
         for word in simulated_text.split(" "):
@@ -145,11 +172,11 @@ class AIService:
                 f"Consider checking the middleware definitions and context schemas in `{repo_name}`. Give it another shot!"
             )
         elif q_num == 1:
-            if "Batman" in persona or "batman" in custom.lower():
+            if custom.strip():
                 return (
-                    f"I've been monitoring `{repo_name}` from the shadows.\n\n"
-                    f"**Question 1 (Level {level} - Vigilante Audit)**: Looking at your `README.md` and dependency stack, "
-                    f"what core single-point-of-failure vulnerabilities would collapse this system if your primary database goes dark?"
+                    f"Welcome to your technical interview for `{repo_name}`! I'm acting under your custom persona directives: *'{custom.strip()}'*.\n\n"
+                    f"**Question 1 (Level {level} - Custom Review)**: Looking at your `README.md` and codebase structure, "
+                    f"what core architectural patterns and security assumptions did you make when designing this project?"
                 )
             return (
                 f"Welcome to your technical interview for `{repo_name}`! I'm evaluating your architectural choices today.\n\n"
