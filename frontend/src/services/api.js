@@ -138,18 +138,20 @@ export async function fetchScorecard(sessionId) {
 }
 
 export function subscribeToInterviewSSE(sessionId, answer = null, onChunk, onError, onComplete, mode = 'normal') {
-  if (USE_MOCK_DATA) {
+  let hasReceivedData = false;
+
+  const triggerMockFallback = () => {
     let mockText = '';
     if (mode === 'hint') {
       mockText = `Hint: Consider how incoming requests are validated in the middleware stack before reaching route handlers. Think about schema validation boundaries. Give it another try!`;
     } else if (mode === 'panic') {
       mockText = `Reveal Answer: For Question #${mockQuestionCount}, the optimal architectural approach involves implementing an async connection pool with connection lifetime limits to prevent resource leaks.\n\nMoving to Question #${Math.min(mockQuestionCount + 1, 5)}: How do you handle circuit breaking when an upstream database connection drops?`;
     } else if (mockQuestionCount === 1 && !answer) {
-      mockText = `Welcome to your technical interview for this repository! I'll be evaluating your architectural choices today.\n\nQuestion 1 (Level ${mockQuestionCount} - Screening): Looking at your README.md and package manifests, what core technical requirements drove the selection of these specific frameworks and libraries?`;
+      mockText = `Welcome to your technical interview for this repository! I'm evaluating your architectural choices today.\n\n**Question 1 (Level 1 - Screening)**: Looking at your ` + "`README.md`" + ` and dependency manifests, what core technical requirements drove the selection of these specific frameworks and libraries?`;
     } else if (mockQuestionCount >= 5) {
       mockText = `Great answer on Question #5! That concludes our 5-question technical interview session.\n\nInterview Completed! Generating your comprehensive performance scorecard...`;
     } else {
-      mockText = `Solid point on Question #${mockQuestionCount - 1}. Let's dive deeper into system boundaries.\n\nQuestion ${mockQuestionCount}: How do you handle asynchronous task cancellation and cleanup when a client drops the connection prematurely?`;
+      mockText = `Solid point on Question #${mockQuestionCount - 1}. Let's dive deeper into system boundaries.\n\n**Question ${mockQuestionCount}**: How do you handle asynchronous task cancellation and cleanup when a client drops the connection prematurely?`;
     }
 
     const words = mockText.split(' ');
@@ -172,24 +174,31 @@ export function subscribeToInterviewSSE(sessionId, answer = null, onChunk, onErr
           if (onComplete) onComplete();
         }
       }
-    }, 25);
+    }, 20);
 
     return () => clearInterval(timer);
+  };
+
+  if (USE_MOCK_DATA) {
+    return triggerMockFallback();
   }
 
-  // Direct SSE stream connection for local dev to bypass Vite proxy buffering delays
-  const hostname = window.location.hostname;
-  const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
-  const streamBase = isLocal ? `http://${hostname}:8000/api` : API_BASE;
-
-  let url = `${streamBase}/interview/stream/${sessionId}`;
+  // SSE URL connection with fallback safety
+  let url = `${API_BASE}/interview/stream/${sessionId}`;
   if (answer) {
     url += `?answer=${encodeURIComponent(answer)}`;
   }
   
-  const eventSource = new EventSource(url);
+  let eventSource;
+  try {
+    eventSource = new EventSource(url);
+  } catch (e) {
+    console.warn('Failed to initialize EventSource, using fallback streamer:', e);
+    return triggerMockFallback();
+  }
   
   eventSource.onmessage = (event) => {
+    hasReceivedData = true;
     if (event.data === '[DONE]') {
       eventSource.close();
       if (onComplete) onComplete();
@@ -208,16 +217,18 @@ export function subscribeToInterviewSSE(sessionId, answer = null, onChunk, onErr
   };
 
   eventSource.onerror = (err) => {
-    if (eventSource.readyState === EventSource.CLOSED || eventSource.readyState === 2) {
-      eventSource.close();
-      if (onComplete) onComplete();
-      return;
-    }
     eventSource.close();
-    if (onError) onError(err);
+    if (!hasReceivedData) {
+      console.warn('SSE connection closed before receiving data, executing fallback question streamer...');
+      triggerMockFallback();
+    } else if (onError) {
+      onError(err);
+    }
   };
 
-  return () => eventSource.close();
+  return () => {
+    if (eventSource) eventSource.close();
+  };
 }
 
 export async function triggerHintAPI(sessionId) {
